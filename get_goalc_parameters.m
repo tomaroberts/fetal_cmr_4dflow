@@ -50,6 +50,12 @@ fclose(fid);
 objectLine = tlineCounter;
 
 
+%% check if variableArray is singular
+if ischar(variableArray)
+    variableArray = {variableArray};
+end
+
+
 %% Find indices of lines containing variable strings
 
 for ii = 1:numel(variableArray)
@@ -69,10 +75,12 @@ for ii = 1:numel(variableArray)
 
     % loop line-by-line to find (multiple) instances of variable name
     while ischar(tline)
-        if strfind(tline, [varCurrent ' = '])  
-            varLines{varCtr,1} = tline;
-            varIdx(varCtr,1) = tlineCounter;
-            varCtr = varCtr + 1;
+        if contains(tline, [varCurrent ' = '])
+            if ~sum(tline(1:numel(varCurrent)) == varCurrent) == 0 % eliminate strings contained within other strings
+                varLines{varCtr,1} = tline;
+                varIdx(varCtr,1) = tlineCounter;
+                varCtr = varCtr + 1;
+            end
         end
         % Read next line in fid
         tline = fgetl(fid);
