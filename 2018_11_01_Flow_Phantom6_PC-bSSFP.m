@@ -231,33 +231,89 @@ implay_RR([VELbip.tra, VELbip.sag, VELbip.cor],'jet',[-abs(VELbip.venc),abs(VELb
 %% Step 6)
 %% Convert referenceless phase maps to velocity maps
 
+%% Get goalc.txt filepaths:
+cd(sp);
+
+% M+
+scanName{1} = 'fl_01112018_2023463_30_2_pih1bffem2dmplusaxclearV4';
+scanName{2} = 'fl_01112018_2029121_31_2_pih1bffem2dmplussagclearV4';
+scanName{3} = 'fl_01112018_2031445_32_2_pih1bffem2dmpluscorclearV4';
+
+% M-
+scanName{4} = 'fl_01112018_2057445_36_2_pih1bffem2dmminusaxexperiment1clearV4';
+scanName{5} = 'fl_01112018_2102065_37_2_pih1bffem2dmminussagexperiment1clearV4';
+scanName{6} = 'fl_01112018_2105508_38_2_pih1bffem2dmminuscorexperiment1clearV4';
+
+% Oblique
+scanName{7} = 'fl_01112018_2042459_33_2_pih1bffem2dmplusaxrotap45clearV4';
+scanName{8} = 'fl_01112018_2048374_34_2_pih1bffem2dmplussagrotrl45clearV4';
+scanName{9} = 'fl_01112018_2050360_35_2_pih1bffem2dmpluscorrotap45clearV4';
+
+
+%% getgoalc parameters for each scan
+
+gc.tra.p = get_pcmr_orientation_parameters( [scanName{1} '_goalc.txt'] );
+gc.sag.p = get_pcmr_orientation_parameters( [scanName{2} '_goalc.txt'] );
+gc.cor.p = get_pcmr_orientation_parameters( [scanName{3} '_goalc.txt'] );
+
+gc.tra.m = get_pcmr_orientation_parameters( [scanName{4} '_goalc.txt'] );
+gc.sag.m = get_pcmr_orientation_parameters( [scanName{5} '_goalc.txt'] );
+gc.cor.m = get_pcmr_orientation_parameters( [scanName{6} '_goalc.txt'] );
+
+gc.tra.o = get_pcmr_orientation_parameters( [scanName{7} '_goalc.txt'] );
+gc.sag.o = get_pcmr_orientation_parameters( [scanName{8} '_goalc.txt'] );
+gc.cor.o = get_pcmr_orientation_parameters( [scanName{9} '_goalc.txt'] );
+
+
+%% First moment values from GVE
+Vm = 6.21;
+Vp = 0;
+Vs = -6.65;
+
+Vmps = [Vm; Vp; Vs];
+
+
+%% Convert First Moments to World Coordinates
+[Vworld.tra.p, Vxyz.tra.p] = vmps2vworld(Vmps,gc.tra.p);
+[Vworld.sag.p, Vxyz.sag.p] = vmps2vworld(Vmps,gc.sag.p);
+[Vworld.cor.p, Vxyz.cor.p] = vmps2vworld(Vmps,gc.cor.p);
+
+[Vworld.tra.m, Vxyz.tra.m] = vmps2vworld(Vmps,gc.tra.m);
+[Vworld.sag.m, Vxyz.sag.m] = vmps2vworld(Vmps,gc.sag.m);
+[Vworld.cor.m, Vxyz.cor.m] = vmps2vworld(Vmps,gc.cor.m);
+
+[Vworld.tra.o, Vxyz.tra.o] = vmps2vworld(Vmps,gc.tra.o);
+[Vworld.sag.o, Vxyz.sag.o] = vmps2vworld(Vmps,gc.sag.o);
+[Vworld.cor.o, Vxyz.cor.o] = vmps2vworld(Vmps,gc.cor.o);
+
+
+%% Reconstruct Velocity images
+
 clear P Pmat V VEL
 
-Mm =  6.21 .* (1e-3).^2;  %ms^2.mT/m
-Mp =  0;
-Ms = -6.65 .* (1e-3).^2;  %ms^2.mT/m
-gamma = 1.5 .* 2 .* pi .* 42577; %Hz/mT --- 1.5 because 1.5T
-% gamma = 2 .* pi .* 42577; %Hz/mT
+%%% working out in my head/on paper... based on O_MATRIX vectors
 
-%-------LR--AP-FH
-Mtra = [Mm, 0, Ms];
-Msag = [Ms, 0, Mm];
-% Msag = [Ms, Mm, 0]; %from Srow
-Mcor = [Mm, Ms, 0];
+% Philips scanner coordinates:
 
-%flipped bSSFP scans
-Mtra_ = [Mm, 0, -Ms];
-Msag_ = [-Ms, 0, Mm];
-% Msag_ = [-Ms, Mm, 0]; %from Srow
-Mcor_ = [Mm, -Ms, 0];
+% +x = PA
+% +y = RL
+% +z = FH
 
-%oblique bSSFP scans
-Mtra_ap45_ = [Mm*cos(d2r(45)) 0 -Ms*cos(d2r(45))];  %rotate around AP, PE dir stays same
-% Mtra_ap45_ = [Mm*cos(d2r(45))+Ms*cos(d2r(45)) 0 -Ms*cos(d2r(45))+Mm*cos(d2r(45))];
-Msag_lr45 =  [Ms Mm*cos(d2r(45)) Mm*cos(d2r(45))];   %rotate around LR, slice dir stays same
-Mcor_ap45 =  [Mm*cos(d2r(45)), Ms, Mm*cos(d2r(45))]; %rotate around AP, slice dir stays same
+%-------x---y---z
+Vtra = [0, -Vm, -Vs];
+Vsag = [Vm, -Vs, 0];
+Vcor = [-Vs, 0, -Vm];
 
-% vectorise phase images
+Vtra_ = [0, -Vm, Vs];
+Vsag_ = [Vm, Vs, 0];
+Vcor_ = [Vs, 0, -Vm];
+
+Vtra_ap45_ = [Vp, (-0.7071*Vm + -0.7071*Vs), (0.7071*Vm + -0.7071*Vs)];
+Vsag_lr45 = [(0.7071*Vm + -0.7071*Vp), -Vs, (-0.7071*Vm + -0.7071*Vp)];
+Vcor_ap45 = [-Vs, (0.7071*Vm + 0.7071*Vp), (-0.7071*Vm + 0.7071*Vp)];
+
+
+%% Vectorise phase images
 P.tra = Y(:,:,:,1); P.tra = P.tra(:);
 P.sag = Y(:,:,:,2); P.sag = P.sag(:);
 P.cor = Y(:,:,:,3); P.cor = P.cor(:);
@@ -269,69 +325,44 @@ P.tra_ap45_ = Y(:,:,:,7); P.tra_ap45_ = P.tra_ap45_(:);
 P.sag_lr45 = Y(:,:,:,8); P.sag_lr45 = P.sag_lr45(:);
 P.cor_ap45 = Y(:,:,:,9); P.cor_ap45 = P.cor_ap45(:);
 
-% solve
-% M6 = gamma .* [Mtra; Msag; Mcor; Mtra_; Msag_; Mcor_];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_, P.sag_, P.cor_]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M6\Pmat(:,ii);
-% end
 
-% M6obl = gamma .* [Mtra; Msag; Mcor; -Mtra_ap45_; Msag_lr45; Mcor_ap45];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45, P.cor_ap45]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M6obl\Pmat(:,ii);
-% end
+%% Solve
 
-% M5 = gamma .* [Mtra; Msag; Mcor; Mtra_; Msag_];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_, P.sag_]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M5\Pmat(:,ii);
-% end
+gamma = 2 .* pi .* 42577; %Hz/mT
+Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
 
-% M5obl = gamma .* [Mtra; Msag; Mcor; -Mtra_ap45_; Mcor_ap45];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.cor_ap45]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M5\Pmat(:,ii);
-% end
-
-% M4 = gamma .* [Mtra; Msag; Mtra_; Msag_];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M4\Pmat(:,ii);
-% end
-
-% M4 = gamma .* [Mtra; Msag; Mtra_; Mcor_];
-% Pmat = [P.tra, P.sag, P.cor, P.cor_]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M4\Pmat(:,ii);
-% end
-
-% M4obl = gamma .* [Mtra; Mcor; Msag_lr45; Mcor_ap45];
-% Pmat = [P.tra, P.cor, P.sag_lr45, P.cor_ap45]';
-% for ii = 1:length(Pmat)
-%     V(:,ii) = M4obl\Pmat(:,ii);
-% end
-
-% M4obl = gamma .* [Mtra; -Mtra_ap45_; Msag_lr45; Mcor_ap45]; %% Best yet...
-M4obl = gamma .* [Mtra; -Mtra_ap45_; Msag_lr45; Mcor_ap45];
-Pmat = [P.tra, P.tra_ap45_, P.sag_lr45, P.cor_ap45]';
+V8 = gamma .* Mscaling .* [Vtra; Vsag; Vcor; Vtra_; Vsag_; Vcor_; Vtra_ap45_; Vsag_lr45];
+Pmat = [P.tra, P.sag, P.cor, P.tra_, P.sag_, P.cor_, P.tra_ap45_, P.sag_lr45]';
 for ii = 1:length(Pmat)
-    V(:,ii) = M4obl\Pmat(:,ii);
+    V(:,ii) = V8\Pmat(:,ii);
 end
 
-% M3 = gamma .* [Mtra; Msag; Mcor];
-% Pmat = [P.tra, P.sag, P.cor]';
+% V6 = gamma .* Mscaling .* [Vtra; Vsag; Vcor; Vtra_; Vsag_; Vcor_];
+% Pmat = [P.tra, P.sag, P.cor, P.tra_, P.sag_, P.cor_]';
 % for ii = 1:length(Pmat)
-%     V(:,ii) = M3\Pmat(:,ii);
+%     V(:,ii) = V6\Pmat(:,ii);
 % end
 
-% M3obl = gamma .* [Mtra; Msag_lr45; Mcor_ap45];
-% Pmat = [P.tra, P.sag_lr45, P.cor_ap45]';
+% V6 = gamma .* Mscaling .* [Vtra; Vsag; Vcor; Vtra_ap45_; Vsag_lr45; Vcor_ap45];
+% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45, P.cor_ap45]';
 % for ii = 1:length(Pmat)
-%     V(:,ii) = M3obl\Pmat(:,ii);
+%     V(:,ii) = V6\Pmat(:,ii);
 % end
 
-% un-vectorise and convert to velocity stacks
+% V5 = gamma .* Mscaling .* [Vtra; Vsag; Vcor; Vtra_ap45_; Vsag_lr45];
+% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
+% for ii = 1:length(Pmat)
+%     V(:,ii) = V5\Pmat(:,ii);
+% end
+
+% V4 = gamma .* Mscaling .* [Vtra; Vsag; Vcor; Vtra_ap45_];
+% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_]';
+% for ii = 1:length(Pmat)
+%     V(:,ii) = V4\Pmat(:,ii);
+% end
+
+
+%% Un-vectorise and convert to velocity stacks
 subV=ind2subV(size(PH.tra.plus),1:numel(P.tra));
 
 for ii = 1:length(subV)
@@ -345,60 +376,50 @@ end
 
 disp('VEL done');
 
-% view
 
-% view referenceless velocity maps
-% implay_RR([VEL.vz, VEL.vx, VEL.vy],'jet',[-50,50]);
+%% View
 
-% view comparison with bipolar maps
-%%% This seems to work for Cartesian! ie: M6
-% implay_RR(([VELbip.sag, VELbip.cor, VELbip.tra;...
-%            VEL.vx, VEL.vy, VEL.vz]),'jet',[-50,50]);
-
-%%% This seems to work for my current combination of oblique! ie: M4obl
-% implay_RR(([VELbip.sag, VELbip.cor, VELbip.tra;...
-%            VEL.vx, VEL.vy, VEL.vz]),'jet',[-50,50]);
-       
-% % view magnitude of 3-vectors
-% implay_RR(([sqrt(VELbip.sag.^2 + VELbip.cor.^2 + VELbip.tra.^2);...
-%            sqrt(VEL.vx.^2 + VEL.vy.^2 + VEL.vz.^2)]),'jet',[-50,50]);       
-       
+% PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
+implay_RR([VELbip.sag, VELbip.cor, VELbip.tra;...
+          -VEL.vy, -VEL.vx, -VEL.vz],'jet',[-50,50]);
 
 % QFLOW vs. PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
 load('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\QFlow\affine_registration\FlowPhantom_QFlow_4D.mat');
-implay_RR(([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra;...
-           -VELbip.sag/2, VELbip.cor/2, VELbip.tra/2;...
-           ...-VEL.vx, VEL.vy, VEL.vz ...
-           ]),'jet',[-50,50]);
+implay_RR([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra; ...           
+           -VELbip.sag, VELbip.cor, VELbip.tra; ...
+          VEL.vy, -VEL.vx, -VEL.vz ...
+           ],'jet',[-50,50]);
+
+%^^^Think this makes sense, as x/y swapped on Philips (and sign change on y)
 
        
 %% save data
-PCbSSFP.MAG  = MAG;
-PCbSSFP.PH   = Y; %<- phase roll corrected
-PCbSSFP.VEL  = VEL;
-PCbSSFP.VELbip  = VELbip;
-PCbSSFP.MASK = MASK;
-save('FlowPhanton_PCbSSFP_4D.mat','PCbSSFP');
+% PCbSSFP.MAG  = MAG;
+% PCbSSFP.PH   = Y; %<- phase roll corrected
+% PCbSSFP.VEL  = VEL;
+% PCbSSFP.VELbip  = VELbip;
+% PCbSSFP.MASK = MASK;
+% save('FlowPhanton_PCbSSFP_4D.mat','PCbSSFP');
 
        
 %% Make GIFs
-frms = size(VEL.vx,3);
-figure();
-
-for tt = 1:frms
-    imagesc([VELbip.tra(:,:,tt), VELbip.sag(:,:,tt), -VELbip.cor(:,:,tt);...
-             VEL.vz(:,:,tt), VEL.vx(:,:,tt), VEL.vy(:,:,tt)],[-50,50]);
-    axis image; colormap(jet);
-    truesize([600 600]);
-    set(gcf,'defaultfigurecolor',[1 1 1]); % remove grey background?
-    set(gca,'visible','off');
-    f = getframe(gcf);
-    imgif{tt} = frame2im(f);
-    clf;
-end
-% write_gif_lj(imgif,[pwd '\PC-bSSFP_bipolar_v_referenceless.gif'],'DelayTime',0.15);
-write_gif_lj(imgif,[pwd '\PC-bSSFP_bipolar_v_referenceless_4stacks_tra_3obl.gif'],'DelayTime',0.15);
-close all
+% frms = size(VEL.vx,3);
+% figure();
+% 
+% for tt = 1:frms
+%     imagesc([VELbip.tra(:,:,tt), VELbip.sag(:,:,tt), -VELbip.cor(:,:,tt);...
+%              VEL.vz(:,:,tt), VEL.vx(:,:,tt), VEL.vy(:,:,tt)],[-50,50]);
+%     axis image; colormap(jet);
+%     truesize([600 600]);
+%     set(gcf,'defaultfigurecolor',[1 1 1]); % remove grey background?
+%     set(gca,'visible','off');
+%     f = getframe(gcf);
+%     imgif{tt} = frame2im(f);
+%     clf;
+% end
+% % write_gif_lj(imgif,[pwd '\PC-bSSFP_bipolar_v_referenceless.gif'],'DelayTime',0.15);
+% write_gif_lj(imgif,[pwd '\PC-bSSFP_bipolar_v_referenceless_4stacks_tra_3obl.gif'],'DelayTime',0.15);
+% close all
 
 
 
