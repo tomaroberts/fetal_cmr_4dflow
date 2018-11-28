@@ -73,13 +73,13 @@ Vxyz = D * O' * Vmps;
 %- Philips defines scanner as:
 %- +x = PA
 %- +y = RL
-%- +z = FH (IS)
+%- +z = FH
 
 %- World/Patient definition (ie: RAI):
 %%%%% I think this might need to match .nii coord system? ie: RAS?
 %- +x` = RL
 %- +y` = AP
-%- +z` = FH (IS)
+%- +z` = FH
 
 %- conversion from Philips to normal world:
 %- scanner : world
@@ -92,7 +92,7 @@ Cprime = [0 -1 0; 1 0 0; 0 0 1];
 
 %% Perform transform to world coordinates
 %- currently, based on Cprime above:
-%- Vworld(1) = RL
+%- Vworld(1) = LR
 %- Vworld(2) = AP
 %- Vworld(3) = FH
 Vworld = Cprime * Vxyz;

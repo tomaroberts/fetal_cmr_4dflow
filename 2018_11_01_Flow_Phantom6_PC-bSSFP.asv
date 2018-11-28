@@ -305,7 +305,7 @@ P.sag_lr45 = Y(:,:,:,8); P.sag_lr45 = P.sag_lr45(:);
 P.cor_ap45 = Y(:,:,:,9); P.cor_ap45 = P.cor_ap45(:);
 
 
-%% Choose stacks for velocity maps
+%% Solve
 
 gamma = 2 .* pi .* 42577; %Hz/mT
 Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
@@ -315,30 +315,25 @@ Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
 % V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.o'; Vworld.sag.o'];
 % Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
 
-% % 6 Cartesian
-% V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.m'; Vxyz.sag.m'; Vxyz.cor.m'];
-% V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.m'; Vworld.sag.m'; Vworld.cor.m'];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_, P.sag_, P.cor_]';
-
-% % 3 oblique
-% %-nb: this doesn't produce nice velocity maps. Obl_cor images corrupt/poorly registered
-% V_xyz = gamma .* Mscaling .* [Vxyz.tra.o'; Vxyz.sag.o'; Vxyz.cor.o'];
-% V_world = gamma .* Mscaling .* [Vworld.tra.o'; Vworld.sag.o'; Vworld.cor.o'];
-% Pmat = [P.tra_ap45_, P.sag_lr45, P.cor_ap45]';
-
-% 2 oblique
-V_xyz = gamma .* Mscaling .* [Vxyz.tra.o'; Vxyz.sag.o'];
-V_world = gamma .* Mscaling .* [Vworld.tra.o'; Vworld.sag.o'];
-Pmat = [P.tra_ap45_, P.sag_lr45]';
+% 6 Cartesian
+V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.o'; Vxyz.sag.o'];
+V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.o'; Vworld.sag.o'];
+Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
 
 
-% Solve
+
+
 for ii = 1:length(Pmat)
     Vxyz_vec(:,ii) = V_xyz\Pmat(:,ii);
     Vworld_vec(:,ii) = V_world\Pmat(:,ii);
 end
 
-disp('Solved.');
+% 6 Cartesian
+V6_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.o'; Vxyz.sag.o'];
+V6_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.o'; Vworld.sag.o'];
+
+
+
 
 
 %% Un-vectorise and convert to velocity stacks
