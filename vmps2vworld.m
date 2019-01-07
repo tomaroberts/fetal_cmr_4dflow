@@ -61,7 +61,8 @@ O = [m_orient; p_orient; s_orient];
 %% Define Gradient Moment direction
 %- relationship between direction of gradients and +ve/-ve velocity encoding
 %- Either positive or negative
-%- Worked out that needs to be negative by matching to equivalent QFlow
+%- For affine approach: worked out that needs to be negative by matching to equivalent QFlow
+% D = [1, 0, 0; 0 1, 0; 0 0 1];
 D = [-1, 0, 0; 0 -1, 0; 0 0 -1];
 
 
@@ -75,8 +76,9 @@ Vxyz = D * O' * Vmps;
 %- +y = RL
 %- +z = FH (IS)
 
-%- World/Patient definition (ie: RAI):
-%%%%% I think this might need to match .nii coord system? ie: RAS?
+%- Sensible World/Patient definition (ie: RAI):
+%%%%% I think this might need to match .nii coord system? ie: LAS = radiological?
+%%%%% nb: when I corrected Josh's .nii output, it puts .nii into neurological order = RAS
 %- +x` = RL
 %- +y` = AP
 %- +z` = FH (IS)
@@ -87,8 +89,15 @@ Vxyz = D * O' * Vmps;
 %-       y :  x`
 %-       z :  z`
 
-Cprime = [0 -1 0; 1 0 0; 0 0 1];
+% think these Cprimes are not incorrectly defined... 
+% despite "RAI" below working in affine data
+% First Cprime transform actually gives LPI (rather than RAI)
+Cprime = [0 -1 0; 1 0 0; 0 0 1];  %<- RAI --- this works with affine approach
+% Cprime = [0 -1 0; 1 0 0; 0 0 -1]; %<- RAS
+% Cprime = [0 1 0; 1 0 0; 0 0 -1];  %<- LAS --- matches Josh's default .nii output
 
+% correct transforms
+% Cprime = [0 1 0; -1 0 0; 0 0 -1];  %<- LAS --- matches Josh's default .nii output
 
 %% Perform transform to world coordinates
 %- currently, based on Cprime above:

@@ -2,9 +2,9 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-sp = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\PC-bSSFP';
+sp = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\PC-bSSFP\raw_data';
 cd(sp);
-cd affine_registration
+cd ../affine_registration
 
 %% Step 1)
 %% Files reconstructed on beastie01 using mrecon_pc_recon().m
@@ -108,8 +108,12 @@ nii = load_untouch_nii('static_water_mask_transformed.nii.gz'); MASK = nii.img; 
 clear nii
 
 % manually determined x/y crop values by looking at full stacks
-xcrop = 109:180;
-ycrop = 134:197;
+% xcrop = 109:180;
+% ycrop = 134:197;
+
+% uncropped
+xcrop = 1:size(MAG.tra.plus,1);
+ycrop = 1:size(MAG.tra.plus,2);
        
 % apply crop to stacks
 MAG.tra.plus = MAG.tra.plus(xcrop,ycrop,:);   PH.tra.plus = PH.tra.plus(xcrop,ycrop,:);
@@ -200,12 +204,14 @@ for ii = 1:size(Y0mat,4)
 end
 
 % view phase corrected stacks
-implay_RR([Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3);...
-           Y(:,:,:,4), Y(:,:,:,5), Y(:,:,:,6);...
-           Y(:,:,:,7), Y(:,:,:,8), Y(:,:,:,9)]);
+% implay_RR([Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3);...
+%            Y(:,:,:,4), Y(:,:,:,5), Y(:,:,:,6);...
+%            Y(:,:,:,7), Y(:,:,:,8), Y(:,:,:,9)]);
        
 % view bipolar corrected deltaPhase images
-implay_RR([Y(:,:,:,1)-Y(:,:,:,4), Y(:,:,:,2)-Y(:,:,:,5), Y(:,:,:,3)-Y(:,:,:,6)],'jet',[-pi,pi]);
+% implay_RR([Y(:,:,:,1)-Y(:,:,:,4), Y(:,:,:,2)-Y(:,:,:,5), Y(:,:,:,3)-Y(:,:,:,6)],'jet',[-pi,pi]);
+
+clear Y0 Y0mat ii M nRow nCol nSl nFrame P0 xdc ydc zdc polyOrder model P1 x y z
 
 
 %% Step 5)
@@ -225,7 +231,7 @@ VELbip.tra = ( Y(:,:,:,1)-Y(:,:,:,4) ) ./ ( 2 .* gamma .* Ms ); VELbip.tra = VEL
 VELbip.sag = ( Y(:,:,:,2)-Y(:,:,:,5) ) ./ ( 2 .* gamma .* Ms ); VELbip.sag = VELbip.sag .* 1e2; %<- cm/s
 VELbip.cor = ( Y(:,:,:,3)-Y(:,:,:,6) ) ./ ( 2 .* gamma .* Ms ); VELbip.cor = VELbip.cor .* 1e2; %<- cm/s
 
-implay_RR([VELbip.tra, VELbip.sag, VELbip.cor],'jet',[-abs(VELbip.venc),abs(VELbip.venc)]);
+% implay_RR([VELbip.tra, VELbip.sag, VELbip.cor],'jet',[-abs(VELbip.venc),abs(VELbip.venc)]);
 
 
 %% Step 6)
@@ -285,6 +291,81 @@ Vmps = [Vm; Vp; Vs];
 [Vworld.tra.o, Vxyz.tra.o] = vmps2vworld(Vmps,gc.tra.o);
 [Vworld.sag.o, Vxyz.sag.o] = vmps2vworld(Vmps,gc.sag.o);
 [Vworld.cor.o, Vxyz.cor.o] = vmps2vworld(Vmps,gc.cor.o);
+disp('Got First Moments.');
+
+
+%% Component phase stacks
+
+cd(sp);
+cd ../affine_registration
+
+Pcomp = zeros(size(PH.tra.plus,1),size(PH.tra.plus,2),size(PH.tra.plus,3),3,numel(scanName));
+
+% M+
+affineNames{1} = 'tra_plus_PH_affine.nii.gz';
+affineNames{2} = 'sag_plus_PH_affine.nii.gz';
+affineNames{3} = 'cor_plus_PH_affine.nii.gz';
+% M-
+affineNames{4} = 'tra_minus_PH_affine.nii.gz';
+affineNames{5} = 'sag_minus_PH_affine.nii.gz';
+affineNames{6} = 'cor_minus_PH_affine.nii.gz';
+% Obl
+affineNames{7} = 'obl_tra_ap-45_PH_affine.nii.gz';
+affineNames{8} = 'obl_sag_lr45_PH_affine.nii.gz';
+affineNames{9} = 'obl_cor_ap45_PH_affine.nii.gz';
+
+for ii = 1:numel(affineNames)
+        
+    % load nii to use as basis for saving
+    niiCurrent = load_untouch_nii(affineNames{ii});
+    
+    % current phase corrected stack
+    currY = Y(:,:,:,ii);
+    
+    % separate PH image into components
+    [Ptemp, Vworld_frac(ii,:)] = phase2components(currY,Vmps,['../raw_data/' scanName{ii} '_goalc.txt']);
+        
+    % save components to matrix
+    Pcomp(:,:,:,1,ii) = Ptemp(:,:,:,1,1); 
+    Pcomp(:,:,:,2,ii) = Ptemp(:,:,:,2,1); 
+    Pcomp(:,:,:,3,ii) = Ptemp(:,:,:,3,1);
+    
+    % Pcomp - dim5 = 1 => Vworld, dim5 = 2 => Vxyz
+    niiCurrent.img = Ptemp(:,:,:,1,1) + pi;
+    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_rl.nii.gz']);
+    niiCurrent.img = Ptemp(:,:,:,2,1) + pi;
+    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_ap.nii.gz']);
+    niiCurrent.img = Ptemp(:,:,:,3,1) + pi;
+    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_fh.nii.gz']);
+    
+    clear niiCurrent
+
+end
+
+disp('Finished making component phase images.');
+
+
+% %%% view:
+% % Pcomp = Pcomp_orig;
+% Pcomp_orig = Pcomp;
+% 
+% s = 45;
+% cscale = [-pi/4,pi/4];
+% 
+% Pcomp = Pcomp;
+% 
+% % cols: RL-AP-FH
+% imtar([Pcomp(:,:,s,1,1), Pcomp(:,:,s,2,1), Pcomp(:,:,s,3,1);...
+%        Pcomp(:,:,s,1,2), Pcomp(:,:,s,2,2), Pcomp(:,:,s,3,2);...
+%        Pcomp(:,:,s,1,3), Pcomp(:,:,s,2,3), Pcomp(:,:,s,3,3);...
+%        Pcomp(:,:,s,1,7), Pcomp(:,:,s,2,7), Pcomp(:,:,s,3,7);...
+%        Pcomp(:,:,s,1,8), Pcomp(:,:,s,2,8), Pcomp(:,:,s,3,8);...
+%        ],...
+%        cscale(1),cscale(2));
+% 
+% cd(sp);
+% save('..\Pcomp_affine_tp_sp_cp_to_so.mat','Pcomp');
+
 
 
 %% Reconstruct Velocity images
@@ -310,10 +391,14 @@ P.cor_ap45 = Y(:,:,:,9); P.cor_ap45 = P.cor_ap45(:);
 gamma = 2 .* pi .* 42577; %Hz/mT
 Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
 
-% % 3 Cartesian, 2 oblique
-% V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.o'; Vxyz.sag.o'];
-% V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.o'; Vworld.sag.o'];
-% Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
+% % leave in radians
+% gamma = 1;
+% Mscaling = 1;
+
+% 3 Cartesian, 2 oblique
+V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.o'; Vxyz.sag.o'];
+V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'; Vworld.tra.o'; Vworld.sag.o'];
+Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
 
 % % 6 Cartesian
 % V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.m'; Vxyz.sag.m'; Vxyz.cor.m'];
@@ -326,10 +411,10 @@ Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
 % V_world = gamma .* Mscaling .* [Vworld.tra.o'; Vworld.sag.o'; Vworld.cor.o'];
 % Pmat = [P.tra_ap45_, P.sag_lr45, P.cor_ap45]';
 
-% 2 oblique
-V_xyz = gamma .* Mscaling .* [Vxyz.tra.o'; Vxyz.sag.o'];
-V_world = gamma .* Mscaling .* [Vworld.tra.o'; Vworld.sag.o'];
-Pmat = [P.tra_ap45_, P.sag_lr45]';
+% % 2 oblique
+% V_xyz = gamma .* Mscaling .* [Vxyz.tra.o'; Vxyz.sag.o'];
+% V_world = gamma .* Mscaling .* [Vworld.tra.o'; Vworld.sag.o'];
+% Pmat = [P.tra_ap45_, P.sag_lr45]';
 
 
 % Solve
@@ -368,12 +453,12 @@ disp('VEL done');
 % PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
 %- xyz coordinate system
 implay_RR([VELbip.cor, VELbip.sag, VELbip.tra;...
-          VEL.vx, VEL.vy, VEL.vz],'jet',[-50,50]);
+          VEL.vx, VEL.vy, VEL.vz],'gray',[-50,50]);
 
 % QFLOW vs. PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
 load('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\QFlow\affine_registration\FlowPhantom_QFlow_4D.mat');
 implay_RR([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra; ...           
-           VEL.vx, VEL.vy, VEL.vz; ...
+          ... VEL.vx, VEL.vy, VEL.vz; ...
            VEL.rl, VEL.ap, VEL.fh ...
            ],'jet',[-50,50]);
 
@@ -387,9 +472,41 @@ implay_RR([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra; ...
 % save('FlowPhanton_PCbSSFP_4D.mat','PCbSSFP');
 
 
+%% save velocity NII
 
+%- load tgt.nii in affine registration
+%- going to save VEL.rl/ap/fh in the tgt orientation
+cd(sp);
 
+% save mag_vol
+nii = load_untouch_nii('../affine_registration/tra_plus_MAG_affine.nii.gz');
+mkdir ../affine_registration/3D
+nii.hdr.dime.dim(2:4) = size(MAG.tra.plus);
+nii.img = MAG.tra.plus;
+save_untouch_nii(nii,['../affine_registration/dicom/MAG_vol.nii.gz']);
 
+% save individual VEL components
+nii = load_untouch_nii('../affine_registration/tra_plus_PH_affine.nii.gz');
+mkdir ../affine_registration/3D
+nii.hdr.dime.dim(2:4) = size(VEL.rl);
+nii.hdr.dime.glmax = 100;
+nii.hdr.dime.glmin = -100;
+
+nii.img = VEL.rl;
+save_untouch_nii(nii,['../affine_registration/3D/VEL_rl.nii.gz']);
+nii.img = VEL.ap;
+save_untouch_nii(nii,['../affine_registration/3D/VEL_ap.nii.gz']);
+nii.img = VEL.fh;
+save_untouch_nii(nii,['../affine_registration/3D/VEL_fh.nii.gz']);
+
+% save 3D VEL version
+nii.img = VEL.rl;
+nii.img(:,:,:,2) = VEL.ap;
+nii.img(:,:,:,3) = VEL.fh;
+nii.hdr.dime.glmax = 100;
+nii.hdr.dime.glmin = -100;
+nii.hdr.dime.dim(5) = 3;
+save_untouch_nii(nii,['../affine_registration/3D/VEL_3D.nii.gz']);
 
 
 
