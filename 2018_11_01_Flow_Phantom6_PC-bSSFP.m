@@ -204,9 +204,9 @@ for ii = 1:size(Y0mat,4)
 end
 
 % view phase corrected stacks
-% implay_RR([Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3);...
-%            Y(:,:,:,4), Y(:,:,:,5), Y(:,:,:,6);...
-%            Y(:,:,:,7), Y(:,:,:,8), Y(:,:,:,9)]);
+implay_RR([Y0mat(:,:,:,1), Y0mat(:,:,:,2), Y0mat(:,:,:,3);...
+           Y0mat(:,:,:,4), Y0mat(:,:,:,5), Y0mat(:,:,:,6);...
+           Y0mat(:,:,:,7), Y0mat(:,:,:,8), Y0mat(:,:,:,9)]);
        
 % view bipolar corrected deltaPhase images
 % implay_RR([Y(:,:,:,1)-Y(:,:,:,4), Y(:,:,:,2)-Y(:,:,:,5), Y(:,:,:,3)-Y(:,:,:,6)],'jet',[-pi,pi]);
@@ -345,23 +345,23 @@ end
 disp('Finished making component phase images.');
 
 
-% %%% view:
-% % Pcomp = Pcomp_orig;
-% Pcomp_orig = Pcomp;
-% 
-% s = 45;
-% cscale = [-pi/4,pi/4];
-% 
-% Pcomp = Pcomp;
-% 
-% % cols: RL-AP-FH
-% imtar([Pcomp(:,:,s,1,1), Pcomp(:,:,s,2,1), Pcomp(:,:,s,3,1);...
-%        Pcomp(:,:,s,1,2), Pcomp(:,:,s,2,2), Pcomp(:,:,s,3,2);...
-%        Pcomp(:,:,s,1,3), Pcomp(:,:,s,2,3), Pcomp(:,:,s,3,3);...
-%        Pcomp(:,:,s,1,7), Pcomp(:,:,s,2,7), Pcomp(:,:,s,3,7);...
-%        Pcomp(:,:,s,1,8), Pcomp(:,:,s,2,8), Pcomp(:,:,s,3,8);...
-%        ],...
-%        cscale(1),cscale(2));
+%%% view:
+% Pcomp = Pcomp_orig;
+Pcomp_orig = Pcomp;
+
+s = 45;
+cscale = [-pi/4,pi/4];
+
+Pcomp = Pcomp;
+
+% cols: RL-AP-FH
+imtar([Pcomp(:,:,s,1,1), Pcomp(:,:,s,2,1), Pcomp(:,:,s,3,1);...
+       Pcomp(:,:,s,1,2), Pcomp(:,:,s,2,2), Pcomp(:,:,s,3,2);...
+       Pcomp(:,:,s,1,3), Pcomp(:,:,s,2,3), Pcomp(:,:,s,3,3);...
+       Pcomp(:,:,s,1,7), Pcomp(:,:,s,2,7), Pcomp(:,:,s,3,7);...
+       Pcomp(:,:,s,1,8), Pcomp(:,:,s,2,8), Pcomp(:,:,s,3,8);...
+       ],...
+       cscale(1),cscale(2));
 % 
 % cd(sp);
 % save('..\Pcomp_affine_tp_sp_cp_to_so.mat','Pcomp');
@@ -419,7 +419,7 @@ Pmat = [P.tra, P.sag, P.cor, P.tra_ap45_, P.sag_lr45]';
 
 % Solve
 for ii = 1:length(Pmat)
-    Vxyz_vec(:,ii) = V_xyz\Pmat(:,ii);
+    Vxyz_vec(:,ii) = V_xyz\Pmat(:,ii); %X = A\B => Vxyz*Vxyz_vec = Pmat
     Vworld_vec(:,ii) = V_world\Pmat(:,ii);
 end
 
@@ -453,7 +453,7 @@ disp('VEL done');
 % PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
 %- xyz coordinate system
 implay_RR([VELbip.cor, VELbip.sag, VELbip.tra;...
-          VEL.vx, VEL.vy, VEL.vz],'gray',[-50,50]);
+          VEL.vx, VEL.vy, VEL.vz],'jet',[-50,50]);
 
 % QFLOW vs. PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
 load('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\QFlow\affine_registration\FlowPhantom_QFlow_4D.mat');
