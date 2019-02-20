@@ -1,4 +1,4 @@
-function Pcorr = poly3D_phase_subtract(P,MASK)
+function [Pcorr, polySurf] = poly3D_phase_subtract(P,MASK)
 
 %% poly3D_phase_subtract   GENERATE BACKGROUND PHASE SUBTRACTED IMAGES
 %
@@ -8,7 +8,7 @@ function Pcorr = poly3D_phase_subtract(P,MASK)
 %
 % OUTPUT:
 %       - Pcorr         Corrected phase image
-%       - P1            Polynomial surface
+%       - polySurf      Polynomial surface
 %
 %
 
@@ -29,10 +29,10 @@ polyOrder = 3;
 % model = polyfitn( [x(find(M)),y(find(M)),z(find(M))], angle(P(find(M))*exp(-(1i*P0))), polyOrder );
 model = polyfitn( [x(find(M)),y(find(M)),z(find(M))], P(find(M)), polyOrder );
 
-P1 = reshape( polyvaln( model, [xdc(:),ydc(:),zdc(:)] ), [nRow,nCol,nSl] );
+polySurf = reshape( polyvaln( model, [xdc(:),ydc(:),zdc(:)] ), [nRow,nCol,nSl] );
 
 % Poly-corrected Phase Image
-Pcorr = P-P1;
+Pcorr = P-polySurf;
 
 
 
