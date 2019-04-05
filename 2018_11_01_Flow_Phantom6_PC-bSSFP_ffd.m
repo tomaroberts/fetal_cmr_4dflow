@@ -4,7 +4,7 @@
 
 sp = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\PC-bSSFP\raw_data';
 cd(sp);
-cd ../affine_registration
+cd ../ffd_registration
 
 %% Step 1)
 %% Files reconstructed on beastie01 using mrecon_pc_recon().m
@@ -28,86 +28,51 @@ cd ../affine_registration
 
 
 %% Step 2)
-%% Transform stacks into same space using irtk transformation tool
-% - target stack = tra_plus_MAG (could be any)
-% - can transform PHASE data to tra_plus_MAG too
-% - code on gpubeastie: 
-%   transformation sag_plus_MAG.nii.gz sag_plus_MAG_transformed.nii.gz -target tra_plus_MAG.nii.gz -linear -matchInputType
-% - repeat for all stacks
+%% Register and transform stacks into same space using MIRTK register
+% - target stack = QFlow_MAG_tp (could be any)
+% - see QFlow_ffd_stack_registration.bash
 % - also transformed static_water_mask.nii.gz (which was drawn in MITK)
-
-
-%% Step 3)
-%% Affine transformation using irtk
-% - - target stack = tra_plus_MAG_transformed (could be any)
-% - code on gpubeastie: 
-%   areg tra_plus_MAG_transformed.nii.gz sag_plus_MAG_transformed.nii.gz -dofout areg_tp_sp.dof
-%   transformation sag_plus_MAG_transformed.nii.gz sag_plus_MAG_affine.nii.gz -dofin areg_tp_sp.dof -target tra_plus_MAG_transformed.nii.gz -linear
-% - repeat for all stacks
 
 
 %% Step 3)
 %% Crop common area
 
-%% LINEAR TRANSFORMATION ONLY
-% nii = load_untouch_nii('tra_plus_MAG_transformed.nii.gz'); MAG.tra.plus = nii.img; 
-% nii = load_untouch_nii('sag_plus_MAG_transformed.nii.gz'); MAG.sag.plus = nii.img; 
-% nii = load_untouch_nii('cor_plus_MAG_transformed.nii.gz'); MAG.cor.plus = nii.img; 
-% nii = load_untouch_nii('tra_minus_MAG_transformed.nii.gz'); MAG.tra.minus = nii.img; 
-% nii = load_untouch_nii('sag_minus_MAG_transformed.nii.gz'); MAG.sag.minus = nii.img; 
-% nii = load_untouch_nii('cor_minus_MAG_transformed.nii.gz'); MAG.cor.minus = nii.img;
-% 
-% nii = load_untouch_nii('tra_plus_PH_transformed.nii.gz'); PH.tra.plus = nii.img; 
-% nii = load_untouch_nii('sag_plus_PH_transformed.nii.gz'); PH.sag.plus = nii.img; 
-% nii = load_untouch_nii('cor_plus_PH_transformed.nii.gz'); PH.cor.plus = nii.img; 
-% nii = load_untouch_nii('tra_minus_PH_transformed.nii.gz'); PH.tra.minus = nii.img; 
-% nii = load_untouch_nii('sag_minus_PH_transformed.nii.gz'); PH.sag.minus = nii.img; 
-% nii = load_untouch_nii('cor_minus_PH_transformed.nii.gz'); PH.cor.minus = nii.img;
 
-% % sagittal stack shifted by one compared to others, so view post-shift:
-% implay_RR([MAG.tra.plus(:,:,1:end-1), MAG.sag.plus(:,:,2:end), MAG.cor.plus(:,:,1:end-1);...
-%            MAG.tra.minus(:,:,1:end-1), MAG.sag.minus(:,:,2:end), MAG.cor.minus(:,:,1:end-1)]);
-       
-% % manually determined x/y crop values by looking at full stacks
-% xcrop = 109:180;
-% ycrop = 134:197;
-% zcrop_s = 2:size(MAG.sag.plus,3);
-% zcrop_t_c = 1:size(MAG.tra.plus,3)-1;
-%        
-% % apply crop to stacks
-% MAG.tra.plus = MAG.tra.plus(xcrop,ycrop,zcrop_t_c);   PH.tra.plus = PH.tra.plus(xcrop,ycrop,zcrop_t_c);
-% MAG.sag.plus = MAG.sag.plus(xcrop,ycrop,zcrop_s);   PH.sag.plus = PH.sag.plus(xcrop,ycrop,zcrop_s);
-% MAG.cor.plus = MAG.cor.plus(xcrop,ycrop,zcrop_t_c);   PH.cor.plus = PH.cor.plus(xcrop,ycrop,zcrop_t_c);  
-% MAG.tra.minus = MAG.tra.minus(xcrop,ycrop,zcrop_t_c); PH.tra.minus = PH.tra.minus(xcrop,ycrop,zcrop_t_c);
-% MAG.sag.minus = MAG.sag.minus(xcrop,ycrop,zcrop_s); PH.sag.minus = PH.sag.minus(xcrop,ycrop,zcrop_s);
-% MAG.cor.minus = MAG.cor.minus(xcrop,ycrop,zcrop_t_c); PH.cor.minus = PH.cor.minus(xcrop,ycrop,zcrop_t_c);
-% MASK = single(MASK(xcrop,ycrop,zcrop_t_c));
-% 
-% clear xcrop ycrop zcrop_s zcrop_t_c
+%% FFD registration
 
+% Load stacks
 
-
-%% AFFINE APPROACH
 %-cartesian stacks
-nii = load_untouch_nii('tra_plus_MAG_affine.nii.gz'); MAG.tra.plus = nii.img; 
-nii = load_untouch_nii('sag_plus_MAG_affine.nii.gz'); MAG.sag.plus = nii.img; 
-nii = load_untouch_nii('cor_plus_MAG_affine.nii.gz'); MAG.cor.plus = nii.img; 
-nii = load_untouch_nii('tra_minus_MAG_affine.nii.gz'); MAG.tra.minus = nii.img; 
-nii = load_untouch_nii('sag_minus_MAG_affine.nii.gz'); MAG.sag.minus = nii.img; 
-nii = load_untouch_nii('cor_minus_MAG_affine.nii.gz'); MAG.cor.minus = nii.img;
+nii = load_untouch_nii('tra_plus_MAG.nii.gz'); MAG.tra.plus = nii.img; 
+nii = load_untouch_nii('sag_plus_MAG_ffd.nii.gz'); MAG.sag.plus = nii.img; 
+nii = load_untouch_nii('cor_plus_MAG_ffd.nii.gz'); MAG.cor.plus = nii.img; 
+nii = load_untouch_nii('tra_minus_MAG_ffd.nii.gz'); MAG.tra.minus = nii.img; 
+nii = load_untouch_nii('sag_minus_MAG_ffd.nii.gz'); MAG.sag.minus = nii.img; 
+nii = load_untouch_nii('cor_minus_MAG_ffd.nii.gz'); MAG.cor.minus = nii.img;
 
-nii = load_untouch_nii('tra_plus_PH_affine.nii.gz'); PH.tra.plus = nii.img; Srow.tra.plus = getSrow(load_untouch_nii('tra_plus_PH.nii.gz')); %<-get Srow from original .nii
-nii = load_untouch_nii('sag_plus_PH_affine.nii.gz'); PH.sag.plus = nii.img; Srow.sag.plus = getSrow(load_untouch_nii('sag_plus_PH.nii.gz'));
-nii = load_untouch_nii('cor_plus_PH_affine.nii.gz'); PH.cor.plus = nii.img; Srow.cor.plus = getSrow(load_untouch_nii('cor_plus_PH.nii.gz'));
-nii = load_untouch_nii('tra_minus_PH_affine.nii.gz'); PH.tra.minus = nii.img; Srow.tra.minus = getSrow(load_untouch_nii('tra_minus_PH.nii.gz'));
-nii = load_untouch_nii('sag_minus_PH_affine.nii.gz'); PH.sag.minus = nii.img; Srow.sag.minus = getSrow(load_untouch_nii('sag_minus_PH.nii.gz'));
-nii = load_untouch_nii('cor_minus_PH_affine.nii.gz'); PH.cor.minus = nii.img; Srow.cor.minus = getSrow(load_untouch_nii('cor_minus_PH.nii.gz'));
+nii = load_untouch_nii('tra_plus_PH.nii.gz'); PH.tra.plus = nii.img; Srow.tra.plus = getSrow(load_untouch_nii('tra_plus_PH.nii.gz')); %<-get Srow from original .nii
+nii = load_untouch_nii('sag_plus_PH_ffd.nii.gz'); PH.sag.plus = nii.img; Srow.sag.plus = getSrow(load_untouch_nii('sag_plus_PH.nii.gz'));
+nii = load_untouch_nii('cor_plus_PH_ffd.nii.gz'); PH.cor.plus = nii.img; Srow.cor.plus = getSrow(load_untouch_nii('cor_plus_PH.nii.gz'));
+nii = load_untouch_nii('tra_minus_PH_ffd.nii.gz'); PH.tra.minus = nii.img; Srow.tra.minus = getSrow(load_untouch_nii('tra_minus_PH.nii.gz'));
+nii = load_untouch_nii('sag_minus_PH_ffd.nii.gz'); PH.sag.minus = nii.img; Srow.sag.minus = getSrow(load_untouch_nii('sag_minus_PH.nii.gz'));
+nii = load_untouch_nii('cor_minus_PH_ffd.nii.gz'); PH.cor.minus = nii.img; Srow.cor.minus = getSrow(load_untouch_nii('cor_minus_PH.nii.gz'));
 
-nii = load_untouch_nii('static_water_mask_transformed.nii.gz'); MASK = nii.img; %drawn on MAG_tra_minus
+%-oblique stacks
+nii = load_untouch_nii('obl_tra_ap-45_MAG_ffd.nii.gz'); MAG.obl.tra = nii.img; 
+nii = load_untouch_nii('obl_sag_lr45_MAG_ffd.nii.gz'); MAG.obl.sag = nii.img; 
+nii = load_untouch_nii('obl_cor_ap45_MAG_ffd.nii.gz'); MAG.obl.cor = nii.img;
 
+nii = load_untouch_nii('obl_tra_ap-45_PH_ffd.nii.gz'); PH.obl.tra = nii.img; Srow.obl.tra = getSrow(load_untouch_nii('obl_tra_ap-45_PH.nii.gz'));
+nii = load_untouch_nii('obl_sag_lr45_PH_ffd.nii.gz'); PH.obl.sag = nii.img; Srow.obl.sag = getSrow(load_untouch_nii('obl_sag_lr45_PH.nii.gz'));
+nii = load_untouch_nii('obl_cor_ap45_PH_ffd.nii.gz'); PH.obl.cor = nii.img; Srow.obl.cor = getSrow(load_untouch_nii('obl_cor_ap45_PH.nii.gz'));
+
+%- mask
+nii = load_untouch_nii('static_water_mask_ffd.nii.gz'); MASK = nii.img; %drawn on MAG_tra_minus
 clear nii
 
-% manually determined x/y crop values by looking at full stacks
+% Crop stacks
+
+% % manually determined x/y crop values by looking at full stacks
 % xcrop = 109:180;
 % ycrop = 134:197;
 
@@ -119,45 +84,16 @@ ycrop = 1:size(MAG.tra.plus,2);
 MAG.tra.plus = MAG.tra.plus(xcrop,ycrop,:);   PH.tra.plus = PH.tra.plus(xcrop,ycrop,:);
 MAG.sag.plus = MAG.sag.plus(xcrop,ycrop,:);   PH.sag.plus = PH.sag.plus(xcrop,ycrop,:);
 MAG.cor.plus = MAG.cor.plus(xcrop,ycrop,:);   PH.cor.plus = PH.cor.plus(xcrop,ycrop,:);  
+
 MAG.tra.minus = MAG.tra.minus(xcrop,ycrop,:); PH.tra.minus = PH.tra.minus(xcrop,ycrop,:);
 MAG.sag.minus = MAG.sag.minus(xcrop,ycrop,:); PH.sag.minus = PH.sag.minus(xcrop,ycrop,:);
 MAG.cor.minus = MAG.cor.minus(xcrop,ycrop,:); PH.cor.minus = PH.cor.minus(xcrop,ycrop,:);
-MASK = single(MASK(xcrop,ycrop,:));
 
-% view stacks
-% implay_RR([MAG.tra.plus, MAG.sag.plus, MAG.cor.plus;...
-%            MAG.tra.minus, MAG.sag.minus, MAG.cor.minus]);
-            
-% implay_RR([PH.tra.plus, PH.sag.plus, PH.cor.plus;...
-%            PH.tra.minus, PH.sag.minus, PH.cor.minus]);
-
-% view bipolar deltaPhase images
-% implay_RR([PH.tra.plus-PH.tra.minus,
-%            PH.sag.plus-PH.sag.minus,
-%            PH.cor.plus-PH.cor.minus],'jet',[-pi,pi]);
-
-% % view normalised, subtracted MAG images
-% maxtra = max(MAG.tra.plus(:)); MAG.tra.plus = MAG.tra.plus./maxtra;
-% maxsag = max(MAG.sag.plus(:)); MAG.sag.plus = MAG.sag.plus./maxsag;
-% maxcor = max(MAG.cor.plus(:)); MAG.cor.plus = MAG.cor.plus./maxcor;
-% implay_RR([MAG.tra.plus, MAG.sag.plus, MAG.cor.plus]);
-
-
-%-oblique stacks
-nii = load_untouch_nii('obl_tra_ap-45_MAG_affine.nii.gz'); MAG.obl.tra = nii.img; 
-nii = load_untouch_nii('obl_sag_lr45_MAG_affine.nii.gz'); MAG.obl.sag = nii.img; 
-nii = load_untouch_nii('obl_cor_ap45_MAG_affine.nii.gz'); MAG.obl.cor = nii.img;
-
-nii = load_untouch_nii('obl_tra_ap-45_PH_affine.nii.gz'); PH.obl.tra = nii.img; Srow.obl.tra = getSrow(load_untouch_nii('obl_tra_ap-45_PH.nii.gz'));
-nii = load_untouch_nii('obl_sag_lr45_PH_affine.nii.gz'); PH.obl.sag = nii.img; Srow.obl.sag = getSrow(load_untouch_nii('obl_sag_lr45_PH.nii.gz'));
-nii = load_untouch_nii('obl_cor_ap45_PH_affine.nii.gz'); PH.obl.cor = nii.img; Srow.obl.cor = getSrow(load_untouch_nii('obl_cor_ap45_PH.nii.gz'));
-
-% implay_RR([MAG.obl.tra, MAG.obl.sag, MAG.obl.cor]);
-
-% apply crop to stacks
 MAG.obl.tra = MAG.obl.tra(xcrop,ycrop,:);   PH.obl.tra = PH.obl.tra(xcrop,ycrop,:);
 MAG.obl.sag = MAG.obl.sag(xcrop,ycrop,:);   PH.obl.sag = PH.obl.sag(xcrop,ycrop,:);
-MAG.obl.cor = MAG.obl.cor(xcrop,ycrop,:);   PH.obl.cor = PH.obl.cor(xcrop,ycrop,:);  
+MAG.obl.cor = MAG.obl.cor(xcrop,ycrop,:);   PH.obl.cor = PH.obl.cor(xcrop,ycrop,:); 
+
+MASK = single(MASK(xcrop,ycrop,:));
 
 % tidy workspace
 clear xcrop ycrop zcrop_s zcrop_t_c nii
@@ -297,27 +233,27 @@ disp('Got First Moments.');
 %% Component phase stacks
 
 cd(sp);
-cd ../affine_registration
+cd ../ffd_registration
 
 Pcomp = zeros(size(PH.tra.plus,1),size(PH.tra.plus,2),size(PH.tra.plus,3),3,numel(scanName));
 
 % M+
-affineNames{1} = 'tra_plus_PH_affine.nii.gz';
-affineNames{2} = 'sag_plus_PH_affine.nii.gz';
-affineNames{3} = 'cor_plus_PH_affine.nii.gz';
+ffdNames{1} = 'tra_plus_PH.nii.gz';
+ffdNames{2} = 'sag_plus_PH_ffd.nii.gz';
+ffdNames{3} = 'cor_plus_PH_ffd.nii.gz';
 % M-
-affineNames{4} = 'tra_minus_PH_affine.nii.gz';
-affineNames{5} = 'sag_minus_PH_affine.nii.gz';
-affineNames{6} = 'cor_minus_PH_affine.nii.gz';
+ffdNames{4} = 'tra_minus_PH_ffd.nii.gz';
+ffdNames{5} = 'sag_minus_PH_ffd.nii.gz';
+ffdNames{6} = 'cor_minus_PH_ffd.nii.gz';
 % Obl
-affineNames{7} = 'obl_tra_ap-45_PH_affine.nii.gz';
-affineNames{8} = 'obl_sag_lr45_PH_affine.nii.gz';
-affineNames{9} = 'obl_cor_ap45_PH_affine.nii.gz';
+ffdNames{7} = 'obl_tra_ap-45_PH_ffd.nii.gz';
+ffdNames{8} = 'obl_sag_lr45_PH_ffd.nii.gz';
+ffdNames{9} = 'obl_cor_ap45_PH_ffd.nii.gz';
 
-for ii = 1:numel(affineNames)
+for ii = 1:numel(ffdNames)
         
     % load nii to use as basis for saving
-    niiCurrent = load_untouch_nii(affineNames{ii});
+    niiCurrent = load_untouch_nii(ffdNames{ii});
     
     % current phase corrected stack
     currY = Y(:,:,:,ii);
@@ -332,11 +268,11 @@ for ii = 1:numel(affineNames)
     
     % Pcomp - dim5 = 1 => Vworld, dim5 = 2 => Vxyz
     niiCurrent.img = Ptemp(:,:,:,1,1) + pi;
-    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_rl.nii.gz']);
+    save_untouch_nii(niiCurrent,[ffdNames{ii}(1:end-7) '_offset_rl.nii.gz']);
     niiCurrent.img = Ptemp(:,:,:,2,1) + pi;
-    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_ap.nii.gz']);
+    save_untouch_nii(niiCurrent,[ffdNames{ii}(1:end-7) '_offset_ap.nii.gz']);
     niiCurrent.img = Ptemp(:,:,:,3,1) + pi;
-    save_untouch_nii(niiCurrent,[affineNames{ii}(1:end-7) '_offset_fh.nii.gz']);
+    save_untouch_nii(niiCurrent,[ffdNames{ii}(1:end-7) '_offset_fh.nii.gz']);
     
     clear niiCurrent
 
@@ -394,6 +330,11 @@ Mscaling = (1e-3).^2;  %ms^2.mT/m --- First Moment scaling into correct units
 % % leave in radians
 % gamma = 1;
 % Mscaling = 1;
+
+% % 3 Cartesian
+% V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'];
+% V_world = gamma .* Mscaling .* [Vworld.tra.p'; Vworld.sag.p'; Vworld.cor.p'];
+% Pmat = [P.tra, P.sag, P.cor]';
 
 % 3 Cartesian, 2 oblique
 V_xyz = gamma .* Mscaling .* [Vxyz.tra.p'; Vxyz.sag.p'; Vxyz.cor.p'; Vxyz.tra.o'; Vxyz.sag.o'];
@@ -455,21 +396,39 @@ disp('VEL done');
 implay_RR([VELbip.cor, VELbip.sag, VELbip.tra;...
           VEL.vx, VEL.vy, VEL.vz],'jet',[-50,50]);
 
+
 % QFLOW vs. PC-bSSFP Bipolar vs. Referenceless PC-bSSFP
-load('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\QFlow\affine_registration\FlowPhantom_QFlow_4D.mat');
+load('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\2018_11_01_Flow_Phantom6\QFlow\ffd_registration\FlowPhantom_QFlow_4D_ffd.mat');
+
+permOrder = [2,1,3];
+
+implay_RR([permute(QFLOW.VEL.sag,permOrder), ...
+           permute(QFLOW.VEL.cor,permOrder), ...
+           -1 .* permute(QFLOW.VEL.tra,permOrder); ...           
+          ... VEL.vx, VEL.vy, VEL.vz; ...
+          ... VEL.rl, VEL.ap, VEL.fh ...
+           ],'jet',[-50,50]);  
+       
+       
+% manually determined x/y crop values by looking at full stacks
+xcrop = 109:180;
+ycrop = 134:197;
+implay_RR([VEL.rl(xcrop,ycrop,:), VEL.ap(xcrop,ycrop,:), -1 .* VEL.fh(xcrop,ycrop,:) ...
+           ],'jet',[-50,50]);
+       
 implay_RR([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra; ...           
           ... VEL.vx, VEL.vy, VEL.vz; ...
-           VEL.rl, VEL.ap, VEL.fh ...
+           VEL.rl(xcrop,ycrop,:), VEL.ap(xcrop,ycrop,:), VEL.fh(xcrop,ycrop,:) ...
            ],'jet',[-50,50]);
-
        
+
 %% save data
 % PCbSSFP.MAG  = MAG;
 % PCbSSFP.PH   = Y; %<- phase roll corrected
 % PCbSSFP.VEL  = VEL;
 % PCbSSFP.VELbip  = VELbip;
 % PCbSSFP.MASK = MASK;
-% save('FlowPhanton_PCbSSFP_4D.mat','PCbSSFP');
+% save('FlowPhanton_PCbSSFP_ffd_4D.mat','PCbSSFP');
 
 
 %% save velocity NII
@@ -479,39 +438,38 @@ implay_RR([QFLOW.VEL.sag, QFLOW.VEL.cor, QFLOW.VEL.tra; ...
 cd(sp);
 
 % save mag_vol
-nii = load_untouch_nii('../affine_registration/tra_plus_MAG_affine.nii.gz');
-mkdir ../affine_registration/3D
+nii = load_untouch_nii('../ffd_registration/tra_plus_MAG.nii.gz');
+mkdir ../ffd_registration/3D
 nii.hdr.dime.dim(2:4) = size(MAG.tra.plus);
 nii.img = MAG.tra.plus;
-save_untouch_nii(nii,['../affine_registration/dicom/MAG_vol.nii.gz']);
+save_untouch_nii(nii,['../ffd_registration/3D/MAG_vol.nii.gz']);
 
 % save individual VEL components
-nii = load_untouch_nii('../affine_registration/tra_plus_PH_affine.nii.gz');
-mkdir ../affine_registration/3D
+nii = load_untouch_nii('../ffd_registration/tra_plus_PH.nii.gz');
+mkdir ../ffd_registration/3D
 nii.hdr.dime.dim(2:4) = size(VEL.rl);
 nii.hdr.dime.glmax = 100;
 nii.hdr.dime.glmin = -100;
 
 nii.img = VEL.rl;
-save_untouch_nii(nii,['../affine_registration/3D/VEL_rl.nii.gz']);
+save_untouch_nii(nii,['../ffd_registration/3D/bSSFP_VEL_rl_ffd.nii.gz']);
 nii.img = VEL.ap;
-save_untouch_nii(nii,['../affine_registration/3D/VEL_ap.nii.gz']);
-nii.img = VEL.fh;
-save_untouch_nii(nii,['../affine_registration/3D/VEL_fh.nii.gz']);
+save_untouch_nii(nii,['../ffd_registration/3D/bSSFP_VEL_ap_ffd.nii.gz']);
+nii.img = -1 .* VEL.fh; %%% IMPORTANT FOR MRtrix - must flip z/fh direction
+save_untouch_nii(nii,['../ffd_registration/3D/bSSFP_VEL_fh_ffd.nii.gz']);
 
 % save 3D VEL version
+nii = load_untouch_nii('../ffd_registration/tra_plus_PH.nii.gz');
 nii.img = VEL.rl;
 nii.img(:,:,:,2) = VEL.ap;
-nii.img(:,:,:,3) = VEL.fh;
+nii.img(:,:,:,3) = -1 .* VEL.fh; %%% IMPORTANT FOR MRtrix - must flip z/fh direction
+nii.hdr.dime.dim(1) = 4;
+nii.hdr.dime.datatype = 64;
+nii.hdr.dime.bitpix = 64;
 nii.hdr.dime.glmax = 100;
 nii.hdr.dime.glmin = -100;
 nii.hdr.dime.dim(5) = 3;
-save_untouch_nii(nii,['../affine_registration/3D/VEL_3D.nii.gz']);
-
-
-
-
-
+save_untouch_nii(nii,['../ffd_registration/3D/3D_bSSFP_VEL_ffd.nii.gz']);
 
 
 
