@@ -7,7 +7,7 @@ cd('C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr206\ktrecon');
 gcFiles = {'s17_goalc','s18_goalc','s20_goalc','s21_goalc'};
 
 for ii = 1:numel(gcFiles)
-    gc = get_pcmr_orientation_parameters( [gcFiles{ii} '_TAR.txt'] );
+    gc = get_pcmr_orientation_parameters( [gcFiles{ii} '_TAR.txt'] ); %_TAR to differentiate from Josh's original goalc files.
     
     m_orient = gc.m_orient;
     p_orient = gc.p_orient;
