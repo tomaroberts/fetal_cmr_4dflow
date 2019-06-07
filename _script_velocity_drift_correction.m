@@ -1,10 +1,13 @@
 %% Correcting 'grass' in fcmr214
 
+fcmrDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr191\';
+velDir = 'vel_vol_rg-nrs_phcorr_uterus';
+
 % fcmrDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr194\';
 % velDir = 'vel_vol_rg-nrs_phcorr_uterus';
 
-fcmrDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr214\';
-velDir = 'vel_vol-rg-nrs_phcorr_uterus';
+% fcmrDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr214\';
+% velDir = 'vel_vol-rg-nrs_phcorr_uterus';
 
 cd(fcmrDir);
 

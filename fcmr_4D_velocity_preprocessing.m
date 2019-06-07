@@ -1,8 +1,5 @@
 %% 4D Cardiac Flow - fcmr pre-processing
 
-% TO DO:
-% - implement phase stacks polynomial correction step
-
 
 %% paths
 
@@ -14,7 +11,7 @@ rawDir = 'Z:\';
 % cd(fcmrJoshDir);
 
 % fNums = [189 194 197 201 202 213 214 230 254 255 257];
-fNums = 214; % pre-process single case at a time...
+fNums = 254; % pre-process single case at a time...
 
 % Tom local folder
 fcmrTomDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
@@ -92,8 +89,12 @@ for ii = 1:numel(fNums)
         movefile([sIDs(ss).name(1:3) '_rlt_ph_corr_uterus.nii.gz'] , ['../data/' sIDs(ss).name(1:3) '_rlt_ph_corr_uterus.nii.gz']);
 
         % save polynomial and offset
+        % FIXME: polynomials currently saving as 5D .nii - should be 3D
         poly_nii = re;
         polyNom = exp( -( 1i*(P0+P1) ) );
+        
+        % TODO: understand exactly what the +pi is doing. Cycling the phase
+        % somehow.
         poly_nii.img = angle(abs(polyNom).*exp(sqrt(-1)*(angle(polyNom)+pi)));
         
         save_untouch_nii(poly_nii,[sIDs(ss).name(1:3) '_rlt_ph_polynomial_uterus.nii.gz']);        
