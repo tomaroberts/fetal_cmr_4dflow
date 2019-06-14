@@ -1,0 +1,4 @@
+## Ignore these filetypes:
+
+*.asv
+*.py-checkpoint.ipynb

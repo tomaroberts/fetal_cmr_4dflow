@@ -37,28 +37,28 @@ nFrame = size(cine_nii.img,4);
 %% Load velocity volume
 cd(['../' velDir]);
 
-% %%% straight out of SVRTK
-% if ~isfile('velocity-final-RESLICE-0.nii.gz') || ~isfile('velocity-final-RESLICE-1.nii.gz') || ~isfile('velocity-final-RESLICE-2.nii.gz') 
-%     reslice_nii('velocity-final-0.nii.gz', 'velocity-final-RESLICE-0.nii.gz');
-%     reslice_nii('velocity-final-1.nii.gz', 'velocity-final-RESLICE-1.nii.gz');
-%     reslice_nii('velocity-final-2.nii.gz', 'velocity-final-RESLICE-2.nii.gz');
-% end
-% 
-% velx_nii = load_nii('velocity-final-RESLICE-0.nii.gz');
-% vely_nii = load_nii('velocity-final-RESLICE-1.nii.gz');
-% velz_nii = load_nii('velocity-final-RESLICE-2.nii.gz');
-
-
-%%% velocity volume polyCorr version
-if ~isfile('velocity-final-polyCorr-RESLICE-0.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-1.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-2.nii.gz') 
-    reslice_nii('velocity-final-polyCorr-0.nii.gz', 'velocity-final-polyCorr-RESLICE-0.nii.gz');
-    reslice_nii('velocity-final-polyCorr-1.nii.gz', 'velocity-final-polyCorr-RESLICE-1.nii.gz');
-    reslice_nii('velocity-final-polyCorr-2.nii.gz', 'velocity-final-polyCorr-RESLICE-2.nii.gz');
+%%% straight out of SVRTK
+if ~isfile('velocity-final-RESLICE-0.nii.gz') || ~isfile('velocity-final-RESLICE-1.nii.gz') || ~isfile('velocity-final-RESLICE-2.nii.gz') 
+    reslice_nii('velocity-final-0.nii.gz', 'velocity-final-RESLICE-0.nii.gz');
+    reslice_nii('velocity-final-1.nii.gz', 'velocity-final-RESLICE-1.nii.gz');
+    reslice_nii('velocity-final-2.nii.gz', 'velocity-final-RESLICE-2.nii.gz');
 end
 
-velx_nii = load_nii('velocity-final-polyCorr-RESLICE-0.nii.gz');
-vely_nii = load_nii('velocity-final-polyCorr-RESLICE-1.nii.gz');
-velz_nii = load_nii('velocity-final-polyCorr-RESLICE-2.nii.gz');
+velx_nii = load_nii('velocity-final-RESLICE-0.nii.gz');
+vely_nii = load_nii('velocity-final-RESLICE-1.nii.gz');
+velz_nii = load_nii('velocity-final-RESLICE-2.nii.gz');
+
+
+% %%% velocity volume polyCorr version
+% if ~isfile('velocity-final-polyCorr-RESLICE-0.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-1.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-2.nii.gz') 
+%     reslice_nii('velocity-final-polyCorr-0.nii.gz', 'velocity-final-polyCorr-RESLICE-0.nii.gz');
+%     reslice_nii('velocity-final-polyCorr-1.nii.gz', 'velocity-final-polyCorr-RESLICE-1.nii.gz');
+%     reslice_nii('velocity-final-polyCorr-2.nii.gz', 'velocity-final-polyCorr-RESLICE-2.nii.gz');
+% end
+% 
+% velx_nii = load_nii('velocity-final-polyCorr-RESLICE-0.nii.gz');
+% vely_nii = load_nii('velocity-final-polyCorr-RESLICE-1.nii.gz');
+% velz_nii = load_nii('velocity-final-polyCorr-RESLICE-2.nii.gz');
 
 
 %% Load masks
@@ -72,13 +72,13 @@ maskBloodPoolFileName = 'mask_blood_pool';
 % Admin - custom masks:
 if fNum == 194
     % All:
-%     masksToUse = {'mask_aorta','mask_LV','mask_RV','mask_LOT','mask_ROT','mask_LA_RA','mask_IVC_SVC'};
+    masksToUse = {'mask_aorta','mask_LV','mask_RV','mask_LOT','mask_ROT','mask_LA_RA','mask_IVC_SVC'};
     % Right-sided
 %     masksToUse = {'mask_RV','mask_ROT','mask_LA_RA','mask_IVC_SVC'};
     % Left-sided
 %     masksToUse = {'mask_aorta','mask_LV','mask_LOT'};
     % Left-sided w/out LOT
-    masksToUse = {'mask_aorta','mask_LV'};
+%     masksToUse = {'mask_aorta','mask_LV'};
     %     maskBloodPoolFileName = 'mask_blood_pool_cleaned';
 elseif fNum == 202
     masksToUse = {'mask_aorta','mask_LV','mask_RV','mask_LOT','mask_ROT','mask_LA_RA','mask_IVC_SVC','mask_PA_DA'};
@@ -182,9 +182,9 @@ Vmag_masked = sqrt(Vx_masked.^2 + Vy_masked.^2 + Vz_masked.^2);
 
 %% Eliminate spurious values from Vmag
 % improves Paraview visualisation
-% hist(nonzeros(Vmag_masked(:)))
-% errIdx = find(Vmag_masked(:) > 50);
-% Vx_masked(errIdx) = 0; Vy_masked(errIdx) = 0; Vz_masked(errIdx) = 0; Vmag_masked(errIdx) = 0;
+hist(nonzeros(Vmag_masked(:)))
+errIdx = find(Vmag_masked(:) > 100);
+Vx_masked(errIdx) = 0; Vy_masked(errIdx) = 0; Vz_masked(errIdx) = 0; Vmag_masked(errIdx) = 0;
 
 
 %% Set Low Velocity Threshold
@@ -200,8 +200,8 @@ cd(velDir);
 % cd paraview
 % mkdir paraview_noPolyCorr
 % cd paraview_noPolyCorr
-mkdir paraview_left_side_noLOT
-cd paraview_left_side_noLOT
+mkdir paraview_noCorr
+cd paraview_noCorr
 
 for tt = 1:nFrame
     
@@ -235,8 +235,8 @@ cd(velDir);
 % cd mrtrix
 % mkdir mrtrix_noPolyCorr
 % cd mrtrix_noPolyCorr
-mkdir paraview_left_side_noLOT
-cd paraview_left_side_noLOT
+mkdir mrtrix_left_side_noLOT
+cd mrtrix_left_side_noLOT
 
 % get .nii to use as basis
 Vx3D_nii = load_untouch_nii([fcmrDir '\' velDir '\velocity-final-polyCorr-RESLICE-0.nii.gz']);
