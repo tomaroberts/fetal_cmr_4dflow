@@ -1,6 +1,6 @@
 #### path/variable admin
 fcmrNum = 194
-pvStateExt = 'testy'
+pvStateExt = ''
 
 fcmrDir = 'C:\\Users\\tr17\\Documents\\Projects\\PC_Fetal_CMR\\Data\\fcmr'
 pvFold = '\\vel_vol\\paraview\\'
