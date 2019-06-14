@@ -1,6 +1,6 @@
-function [Vworld, Vxyz] = vmps2vworld(Vmps,gc)
+function [Vworld, Vxyz] = gradfirstmom_mps2world(Vmps,gc)
 
-%% vmps2vworld   CONVERT GRADIENT MOMENT VECTORS FROM MPS TO WORLD COORDINATES
+%% gradfirstmom_mps2world   CONVERT GRADIENT MOMENT VECTORS FROM MPS TO WORLD COORDINATES
 %
 % INPUT:
 %       - Vmps          First moments measured in GVE
@@ -107,5 +107,5 @@ Cprime = [0 -1 0; 1 0 0; 0 0 1];  %<- RAI --- this works with affine approach
 Vworld = Cprime * Vxyz;
 
 
-% end vmps2vworld(...).m
+% end gradfirstmom_mps2world(...).m
 end
