@@ -1,11 +1,10 @@
-function fcmr_pc_velocity_correction( fcmrDir , velDir, bpThreshold )
+function fcmr_4dflow_drift_correction( fcmrDir , velDir, bpThreshold )
 
-%% fcmr_pc_velocity_correction()
+%% fcmr_4dflow_drift_correction()
 % Apply polynomial to velocity volumes to clean up vectors which do not 
 % change through cardiac cycle.
 %
-%
-%
+% Tom Roberts (t.roberts@kcl.ac.uk)
 
 %% Admin
 
@@ -15,6 +14,7 @@ if nargin < 3
 end
 
 cd(fcmrDir);
+
 
 %% Load data
 

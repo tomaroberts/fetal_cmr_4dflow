@@ -1,20 +1,27 @@
-function [Vworld, Vxyz] = gradfirstmom_mps2world(Vmps,gc)
+function [Vworld, Vxyz] = gradfirstmom_mps2world( Vmps, gc )
 
-%% gradfirstmom_mps2world   CONVERT GRADIENT MOMENT VECTORS FROM MPS TO WORLD COORDINATES
+%% GRADFIRSTMOM_MPS2WORLD	convert gradient moment vectors from scanner to world coordinates
 %
-% INPUT:
+%   GRADFIRSTMOM_MPS2WORLD( Vmps, gc )
+%       Convert gradient first moment vector from scanner (MPS) to world
+%       coordinates (and XYZ coordinates)
+%       - uses the O_MATRIX from the Philips goalc code associated with the 
+%         stack to transform from scanner to world coordinates
+%
+% Input:
 %       - Vmps          First moments measured in GVE
 %       - gc            goalc structure containing m_/p_/s_/orient
 %
-% OUTPUT:
+% Output:
 %       - Vworld        First moments in world coordinates
 %       - Vxyz          First moments in scanner (xyz) coordinates
 %
-% TO DO:
+% TODO:
 % - eventually change so that it can calculate Vmps from goalc structure
-% - need to establish whether gradient dirs are consistent with m_orient/s_orient
-% - is Cprime correct? Should it be RAS (ie: transformed to same as .nii?)
+%
+%
 
+% Tom Roberts (t.roberts@kcl.ac.uk)
 
 %% First moments
 Vm = Vmps(1);

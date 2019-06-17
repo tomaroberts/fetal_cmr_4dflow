@@ -1,24 +1,56 @@
-%% 4D Cardiac Flow - fcmr pre-processing
+function fcmr_4dflow_preprocessing( studyDir, fcmrNum, rawDir )
+%FCMR_4DFLOW_PREPROCESSING  pre-processing of 4D flow real-time data
+%
+%   FCMR_4DFLOW_PREPROCESSING( studyDir, fcmrNum )
+%       Pre-processing required before reconstructing data with SVRTK
+%       - Creates polynomial phase corrected stacks based on uterus mask
+%       - Creates new goalc.txt files containing gradient first moment
+%         information
+% 
+%   Requires:
+%       Uterus ROIs drawn for each s*_.nii.gz stack, saved in ../mask/ as
+%       s*_mask_uterus.nii.gz
+%
+%   Input:
+%       studyDir            - str - local directory of fetal subjects
+%       fcmrNum             - int - subject number(s) - can be [1xN] array
+%
+%   Optional Inputs:
+%       rawDir              - str - directory on server containing .raw data
+%
+%   Example usage:
+%       fcmr_4dflow_preprocessing( 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data', 194, 'Z:\' )
+%
+%
+%   See also:
+%       phase_correction_poly.m
+
+% Tom Roberts (t.roberts@kcl.ac.uk)
 
 
-%% paths
+%% Default paths
+% - for example:
 
 % ingenia-raw
-rawDir = 'Z:\';
+if nargin < 3
+    rawDir = 'Z:\';
+end
 
 % Josh's store:
 % fcmrJoshDir = 'F:\2018_11_16_Josh_Backup\fcmr_cine_3d';
 % cd(fcmrJoshDir);
 
-% fNums = [189 194 197 201 202 213 214 230 254 255 257];
-fNums = 254; % pre-process single case at a time...
+% fcmrNum = 254;
+% fcmrNum = [189 194 197 201 202 213 214 230 254 255 257];
 
-% Tom local folder
-fcmrTomDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
+% local folder
+% studyDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
 
 
 %% Manually draw uterus ROIs for each stack for polynomial phase correction
 %- save in ../mask/ as s*_mask_uterus.nii.gz
+
+% TODO: add in check to see if mask files exist
 
 
 %% Create _ph.nii.gz and _ph_corr.nii.gz
@@ -27,13 +59,13 @@ fcmrTomDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
 %%% _ph.nii.gz files? Currently headers based on _re.nii.gz images
 
 
-cd(fcmrTomDir);
+cd(studyDir);
 
-for ii = 1:numel(fNums)
+for ii = 1:numel(fcmrNum)
     
-    disp(['Generating phase stacks for fcmr' num2str(fNums(ii)) ' ... ' ]);
+    disp(['Generating phase stacks for fcmr' num2str(fcmrNum(ii)) ' ... ' ]);
     
-    cd([fcmrTomDir '\fcmr' num2str(fNums(ii)) ]);
+    cd([studyDir '\fcmr' num2str(fcmrNum(ii)) ]);
     
     cd data
     sIDs = dir('s*_rlt_ab.nii.gz');
@@ -89,12 +121,10 @@ for ii = 1:numel(fNums)
         movefile([sIDs(ss).name(1:3) '_rlt_ph_corr_uterus.nii.gz'] , ['../data/' sIDs(ss).name(1:3) '_rlt_ph_corr_uterus.nii.gz']);
 
         % save polynomial and offset
-        % FIXME: polynomials currently saving as 5D .nii - should be 3D
+        % TODO: polynomials currently saving as 5D .nii - should be 3D
         poly_nii = re;
         polyNom = exp( -( 1i*(P0+P1) ) );
         
-        % TODO: understand exactly what the +pi is doing. Cycling the phase
-        % somehow.
         poly_nii.img = angle(abs(polyNom).*exp(sqrt(-1)*(angle(polyNom)+pi)));
         
         save_untouch_nii(poly_nii,[sIDs(ss).name(1:3) '_rlt_ph_polynomial_uterus.nii.gz']);        
@@ -105,9 +135,9 @@ for ii = 1:numel(fNums)
         
     end
     
-    disp(['Completed making phase stacks for fcmr' num2str(fNums(ii)) ' ... ' ]);
+    disp(['Completed making phase stacks for fcmr' num2str(fcmrNum(ii)) ' ... ' ]);
     
-    cd([fcmrTomDir '\fcmr' num2str(fNums(ii)) ]);
+    cd([studyDir '\fcmr' num2str(fcmrNum(ii)) ]);
     
 end
 
@@ -115,8 +145,8 @@ end
 %% get scan dates
 
 % get scan dates from Josh's log files
-for ii = 1:numel(fNums)
-    cd([fcmrTomDir '/fcmr' num2str(fNums(ii)) '/ktrecon/']);
+for ii = 1:numel(fcmrNum)
+    cd([studyDir '/fcmr' num2str(fcmrNum(ii)) '/ktrecon/']);
     logFile = dir('log*.txt');
     
     fid = fopen(logFile(1).name);
@@ -140,9 +170,9 @@ end
 
 % 1) get raw files from pnraw
 
-for ii = 1:numel(fNums)
+for ii = 1:numel(fcmrNum)
     
-    disp(['Fetching .raw files for fcmr' num2str(fNums(ii)) ' ... ']);
+    disp(['Fetching .raw files for fcmr' num2str(fcmrNum(ii)) ' ... ']);
     
     cd(rawDir);
     cd(D{ii});
@@ -151,7 +181,7 @@ for ii = 1:numel(fNums)
     rtRawScanNames = dir('*kt8i0bffe*.raw');
     rtLabScanNames = dir('*kt8i0bffe*.lab');
     
-    rawDirTom = [fcmrTomDir '\fcmr' num2str(fNums(ii)) '\raw'];
+    rawDirTom = [studyDir '\fcmr' num2str(fcmrNum(ii)) '\raw'];
     mkdir(rawDirTom);
     for nn = 1:numel(rtRawScanNames)
         copyfile(rtRawScanNames(nn).name , rawDirTom );
@@ -161,7 +191,7 @@ for ii = 1:numel(fNums)
     
     cd(rawDirTom);
     
-    disp(['Copied .raw/.lab files for fcmr' num2str(fNums(ii)) ' ... ']);
+    disp(['Copied .raw/.lab files for fcmr' num2str(fcmrNum(ii)) ' ... ']);
 end
 
 
@@ -185,3 +215,5 @@ warning('HAVE YOU MEASURED THE GRADIENT MOMENTS USING GVE?');
 %- Send to beastie02 once done.
 warning('YOU MIGHT NEED TO MAKE THE WORLD COORDINATE GRADIENT MOMENT .txt FILES');
 
+
+end % fcmr_4dflow_preprocessing(...)

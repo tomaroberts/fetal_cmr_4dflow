@@ -2,7 +2,7 @@ function values = get_pcmr_orientation_parameters( gcFilePath )
 
 %GET_PCMR_ORIENTATION_PARAMETERS extract important PC-bSSFP parameters from goalc.txt file
 %
-%   GET_GOALC_PARAMETERS( goalcFile, objectStr, variableArray )
+%   GET_PCMR_ORIENTATION_PARAMETERS( goalcFile, objectStr, variableArray )
 % 
 %   Output:
 %       values              - structure containing specified variables and
