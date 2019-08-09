@@ -38,3 +38,7 @@ For Paraview visualisation, run the .py file using `pvpython.exe` within your Pa
 The 4D flow cine reconstruction framework is an extension of the 4D magnitude cine framework developed by van Amerom et al.: https://github.com/jfpva/fetal_cmr_4d
 
 ![](4dflow_recon/4dflow_framework.png)
+
+## See Also
+
+Code for synthetic flow phantom used in this paper: https://github.com/tomaroberts/synthflow_phantom
