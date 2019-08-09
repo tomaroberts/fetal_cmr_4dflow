@@ -1,11 +1,12 @@
 #### path/variable admin
-fcmrNum = 202
+fcmrNum = 197
 pvStateExt = ''
+# velDir = '\\vel_vol_4d'
 velDir = '\\vel_vol_trans_4d'
 
-#pvFold = '\\paraview' + '\\'
-#pvFold = '\\paraview_polyCorr' + '\\'
-pvFold = '\\paraview_polyCorr_aorta_LV_RV_LOT_ROT_LA_RA_IVC_SVC_PA_DA' + '\\'
+# pvFold = '\\paraview' + '\\'
+pvFold = '\\paraview_polyCorr' + '\\'
+# pvFold = '\\paraview_polyCorr_aorta_LV_RV_LOT_ROT_LA_RA_IVC_SVC_PA_DA' + '\\'
 
 fcmrDir = 'C:\\Users\\tr17\\Documents\\Projects\\PC_Fetal_CMR\\Data\\fcmr'
 path = fcmrDir + str(fcmrNum) + velDir + pvFold
