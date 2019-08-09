@@ -1,26 +1,36 @@
-function fcmr_4D_velocity_vessel_analysis(fNum)
+function fcmr_4dflow_vessel_analysis( studyDir, fcmrNum, usePolyCorr )
 
 %% 4D Cardiac Flow - fcmr vessel analysis
 %
 % - 2D ROIs drawn around vessels / regions in MITK
-% - requires .nii.gz files saved in fcmrDir/mask_vessels
+% - requires .nii.gz files saved in fcmrDir/roi
 % - ideally ROI files will be named according to vessel, ie: DAo.nii.gz
 % - script uses file names for titles in figures.
 %
-%
+% See also:
+%   Wrapper script: C:\Users\tr17\Documents\CODE_Projects\fetal_cmr_4dflow\wip\fcmr_4dflow_vesselanalysis_wrapper.m
+
+% Tom Roberts (t.roberts@kcl.ac.uk)
+
 
 close all
 % clear
 
 %% Admin
-% fNum = 191;
-fcmrDir = ['C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr' num2str(fNum)];
+
+% fcmrNum = 191;
+fcmrDir = fullfile( studyDir, ['fcmr' num2str(fcmrNum)] );
 cd(fcmrDir);
 
 velDir = 'vel_vol';
 
+if nargin < 3
+    usePolyCorr = false;
+end
+
 
 %% Load cine volume
+
 cd('cine_vol')
 if ~isfile('cine_vol-RESLICE.nii.gz')
     reslice_nii('cine_vol.nii.gz', 'cine_vol-RESLICE.nii.gz');
@@ -31,36 +41,50 @@ nFrame = size(cine_nii.img,4);
 
 
 %% Load velocity volume
+
 cd(['../' velDir]);
 
-% %%% straight out of SVRTK
-% reslice_nii('velocity-final-0.nii.gz', 'velocity-final-RESLICE-0.nii.gz');
-% reslice_nii('velocity-final-1.nii.gz', 'velocity-final-RESLICE-1.nii.gz');
-% reslice_nii('velocity-final-2.nii.gz', 'velocity-final-RESLICE-2.nii.gz');
-% 
-% velx_nii = load_nii('velocity-final-RESLICE-0.nii.gz');
-% vely_nii = load_nii('velocity-final-RESLICE-1.nii.gz');
-% velz_nii = load_nii('velocity-final-RESLICE-2.nii.gz');
+if usePolyCorr == false
 
+    %%% straight out of SVRTK
+    if ~isfile('velocity-final-RESLICE-0.nii.gz') || ~isfile('velocity-final-RESLICE-1.nii.gz') || ~isfile('velocity-final-RESLICE-2.nii.gz') 
+            reslice_nii('velocity-final-0.nii.gz', 'velocity-final-RESLICE-0.nii.gz');
+        reslice_nii('velocity-final-1.nii.gz', 'velocity-final-RESLICE-1.nii.gz');
+        reslice_nii('velocity-final-2.nii.gz', 'velocity-final-RESLICE-2.nii.gz');
+    end
+    
+    velx_nii = load_nii('velocity-final-RESLICE-0.nii.gz');
+    vely_nii = load_nii('velocity-final-RESLICE-1.nii.gz');
+    velz_nii = load_nii('velocity-final-RESLICE-2.nii.gz');
 
-%%% velocity volume polyCorr version
-if ~isfile('velocity-final-polyCorr-RESLICE-0.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-1.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-2.nii.gz') 
-    reslice_nii('velocity-final-polyCorr-0.nii.gz', 'velocity-final-polyCorr-RESLICE-0.nii.gz');
-    reslice_nii('velocity-final-polyCorr-1.nii.gz', 'velocity-final-polyCorr-RESLICE-1.nii.gz');
-    reslice_nii('velocity-final-polyCorr-2.nii.gz', 'velocity-final-polyCorr-RESLICE-2.nii.gz');
+elseif usePolyCorr == true
+
+    %%% velocity volume drift correction
+    if ~isfile('velocity-final-polyCorr-RESLICE-0.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-1.nii.gz') || ~isfile('velocity-final-polyCorr-RESLICE-2.nii.gz') 
+        reslice_nii('velocity-final-polyCorr-0.nii.gz', 'velocity-final-polyCorr-RESLICE-0.nii.gz');
+        reslice_nii('velocity-final-polyCorr-1.nii.gz', 'velocity-final-polyCorr-RESLICE-1.nii.gz');
+        reslice_nii('velocity-final-polyCorr-2.nii.gz', 'velocity-final-polyCorr-RESLICE-2.nii.gz');
+    end
+
+    velx_nii = load_nii('velocity-final-polyCorr-RESLICE-0.nii.gz');
+    vely_nii = load_nii('velocity-final-polyCorr-RESLICE-1.nii.gz');
+    velz_nii = load_nii('velocity-final-polyCorr-RESLICE-2.nii.gz');
+    
 end
 
-velx_nii = load_nii('velocity-final-polyCorr-RESLICE-0.nii.gz');
-vely_nii = load_nii('velocity-final-polyCorr-RESLICE-1.nii.gz');
-velz_nii = load_nii('velocity-final-polyCorr-RESLICE-2.nii.gz');
+Vx = velx_nii.img;
+Vy = vely_nii.img;
+Vz = velz_nii.img;
+
+% cm/s
+Vx = 1e2 .* Vx;
+Vy = 1e2 .* Vy; 
+Vz = 1e2 .* Vz;
 
 
 %% Load blood pool mask
 
 cd('../mask');
-
-% Blood pool mask:
-% BP mask automatically created in fcmr_pc_velocity_correction.m
 maskFileName = 'mask_blood_pool';
 
 % open mask / reslice if necessary
@@ -73,24 +97,20 @@ mask.img = double(mask.img);
 for ii = 1:nFrame; mask.img(:,:,:,ii) = mask.img(:,:,:,1); end
 
 
-%% Folder check
+%% Load vessel ROIs
+
 cd(fcmrDir);
 
-% cd mask_vessels
-
-if exist('mask_vessels_v2') == 7
-    roiDir = 'mask_vessels_v2';
+% Folder check
+if exist('roi_v2') == 7
+    roiDir = 'roi_v2';
     cd(roiDir);
 else
     disp('Version 2 folder does not exist ... ')
-    roiDir = 'mask_vessels';
+    roiDir = 'roi';
     cd(roiDir);
 end
 
-
-%% Load vessel ROIs
-
-% .nii
 dirNames = dir('*.nii.gz');
 for ii = 1:numel(dirNames)
     roiNames(ii) = cellstr(dirNames(ii).name(1:end-7));
@@ -107,19 +127,9 @@ for ii = 1:numel(roiNames)
 end
 
 
-%% Make component velocity volumes for VTK
-Vx = velx_nii.img;
-Vy = vely_nii.img;
-Vz = velz_nii.img;
-
-% cm/s
-Vx = 1e2 .* Vx;
-Vy = 1e2 .* Vy; 
-Vz = 1e2 .* Vz;
-
-
 %% Resize
 % FIXME: for some reason mask is 1 voxel larger than original volume...? 
+
 for tt = 1:nFrame
     Vx_re(:,:,:,tt) = imresize3(Vx(:,:,:,tt),size(cine_nii.img(:,:,:,tt)));
     Vy_re(:,:,:,tt) = imresize3(Vy(:,:,:,tt),size(cine_nii.img(:,:,:,tt)));
@@ -143,6 +153,7 @@ end
 
 
 %% Calculate magnitude /sum velocity volume
+
 Vsum = (Vx + Vy + Vz);
 Vmag = sqrt(Vx.^2 + Vy.^2 + Vz.^2);
 
@@ -167,12 +178,26 @@ end
 medianFrameShift = round(median(nFrameShift));
 
 
+%% Save to analysis folder 
+
+cd( fullfile (fcmrDir , roiDir) )
+
+if usePolyCorr == true
+    mkdir('vessel_analysis_polyCorr');
+    cd('vessel_analysis_polyCorr');
+elseif usePolyCorr == false
+    mkdir('vessel_analysis');
+    cd('vessel_analysis');
+end
+
+
 %% Temporal information
+
 rr = cine_nii.hdr.dime.pixdim(5) * 1e3 * nFrame; % ms
 dt = cine_nii.hdr.dime.pixdim(5) * 1e3;          % ms
 time = linspace(0,rr,nFrame);                    % ms
 
-fileID = fopen(['fcmr' num2str(fNum) '_frame_times.txt'],'w');
+fileID = fopen(['fcmr' num2str(fcmrNum) '_frame_times.txt'],'w');
 fprintf(fileID,'Median frame shift: \t');
 fprintf(fileID,'%.4f', medianFrameShift);
 fprintf(fileID,'\n\n');
@@ -187,8 +212,8 @@ fclose(fileID);
 hFig = figure;
 ftSz = 14;
 
-fileID = fopen(['fcmr' num2str(fNum) '_velocity_sum_vessels.txt'],'w');
-fprintf(fileID,[ 'fcmr' num2str(fNum) ': \n']);
+fileID = fopen(['fcmr' num2str(fcmrNum) '_velocity_sum_vessels.txt'],'w');
+fprintf(fileID,[ 'fcmr' num2str(fcmrNum) ': \n']);
 fprintf(fileID,'Mean / STD \n\n');
 
 for ii = 1:numel(roiNames)
@@ -235,8 +260,8 @@ hFig.Position(3) = 0.9 * screenSize(3);
 hFig.Position(2) = 0.1 * screenSize(4);
 hFig.Position(4) = 0.8 * screenSize(4);
 
-saveas(gcf,['fcmr' num2str(fNum) '_velocity_sum_vessels.fig']);
-saveas(gcf,['fcmr' num2str(fNum) '_velocity_sum_vessels.png']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_velocity_sum_vessels.fig']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_velocity_sum_vessels.png']);
 
 fclose(fileID);
 
@@ -246,8 +271,8 @@ fclose(fileID);
 hFig = figure;
 ftSz = 14;
 
-fileID = fopen(['fcmr' num2str(fNum) '_velocity_magnitude_vessels.txt'],'w');
-fprintf(fileID,[ 'fcmr' num2str(fNum) ': \n']);
+fileID = fopen(['fcmr' num2str(fcmrNum) '_velocity_magnitude_vessels.txt'],'w');
+fprintf(fileID,[ 'fcmr' num2str(fcmrNum) ': \n']);
 fprintf(fileID,'Mean / STD \n\n');
     
 for ii = 1:numel(roiNames)
@@ -288,8 +313,8 @@ hFig.Position(3) = 0.9 * screenSize(3);
 hFig.Position(2) = 0.1 * screenSize(4);
 hFig.Position(4) = 0.8 * screenSize(4);
 
-saveas(gcf,['fcmr' num2str(fNum) '_velocity_magnitude_vessels.fig']);
-saveas(gcf,['fcmr' num2str(fNum) '_velocity_magnitude_vessels.png']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_velocity_magnitude_vessels.fig']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_velocity_magnitude_vessels.png']);
 
 % close;
 
@@ -305,8 +330,8 @@ voxArea = voxRes(1) * voxRes(2); % mm^2
 hFig = figure;
 ftSz = 14;
 
-fileID = fopen(['fcmr' num2str(fNum) '_flow_magnitude_vessels.txt'],'w');
-fprintf(fileID,[ 'fcmr' num2str(fNum) ': \n']);
+fileID = fopen(['fcmr' num2str(fcmrNum) '_flow_magnitude_vessels.txt'],'w');
+fprintf(fileID,[ 'fcmr' num2str(fcmrNum) ': \n']);
 fprintf(fileID,'Mean / STD / Total Mean / Total STD / Stroke Volume \n\n');
 
 for ii = 1:numel(roiNames)
@@ -375,8 +400,8 @@ hFig.Position(3) = 0.9 * screenSize(3);
 hFig.Position(2) = 0.1 * screenSize(4);
 hFig.Position(4) = 0.8 * screenSize(4);
 
-saveas(gcf,['fcmr' num2str(fNum) '_flow_magnitude_vessels.fig']);
-saveas(gcf,['fcmr' num2str(fNum) '_flow_magnitude_vessels.png']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_flow_magnitude_vessels.fig']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_flow_magnitude_vessels.png']);
 
 fclose(fileID);
 
@@ -390,8 +415,8 @@ voxArea = voxRes(1) * voxRes(2); % mm^2
 hFig = figure;
 ftSz = 14;
 
-fileID = fopen(['fcmr' num2str(fNum) '_flow_sum_vessels.txt'],'w');
-fprintf(fileID,[ 'fcmr' num2str(fNum) ': \n']);
+fileID = fopen(['fcmr' num2str(fcmrNum) '_flow_sum_vessels.txt'],'w');
+fprintf(fileID,[ 'fcmr' num2str(fcmrNum) ': \n']);
 fprintf(fileID,'Mean / STD / Total Mean / Total STD / Stroke Volume \n\n');
 
 for ii = 1:numel(roiNames)
@@ -460,17 +485,17 @@ hFig.Position(3) = 0.9 * screenSize(3);
 hFig.Position(2) = 0.1 * screenSize(4);
 hFig.Position(4) = 0.8 * screenSize(4);
 
-saveas(gcf,['fcmr' num2str(fNum) '_flow_sum_vessels.fig']);
-saveas(gcf,['fcmr' num2str(fNum) '_flow_sum_vessels.png']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_flow_sum_vessels.fig']);
+saveas(gcf,['fcmr' num2str(fcmrNum) '_flow_sum_vessels.png']);
 
 fclose(fileID);
 
 
 %% Save spreadsheet
-cd(fcmrDir);
-cd(roiDir);
+% cd(fcmrDir);
+% cd(roiDir);
 
-ssFileName = ['fcmr' num2str(fNum) '_flow_velocity_values.xlsx'];
+ssFileName = ['fcmr' num2str(fcmrNum) '_flow_velocity_values.xlsx'];
 
 % save ROI per sheet
 for ii = 1:numel(roiNames)
@@ -585,6 +610,5 @@ end
 % rectify vsum
 ROI.vsum = sign( sum( ROI.vsum(:) ) ) * ROI.vsum;
 
-%end
-end
 
+end %fcmr_4dflow_vessel_analysis(...)

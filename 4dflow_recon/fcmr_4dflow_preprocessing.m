@@ -195,24 +195,17 @@ for ii = 1:numel(fcmrNum)
 end
 
 
-%% 2) Manually copy the ../raw folder across to beastie02
+%% Manually copy the ../raw folder across to beastie02
 %    (if entire fcmrXXX folder is not already there)
 warning('REMEMBER TO SEND ../raw/*.goalc.txt FILES TO BEASTIE FOR UPDATING');
 
-%% 3) Generate new *goalc.txt files on beastie02 using ktrecon_write_goalc.m
+%% Generate updated *goalc.txt files on beastie02 using ktrecon_write_goalc.m
 %    (requires reconFrame) and then copy back to local computer
 
-
 %% Generate gradient_moment_vals.txt / gradient_moment_dirs.txt
-%- Create a MATLAB script for each fcmrXXX
-
-%- Manually measure M and S gradient moments
-% - Do this manually in the simulator GVE
-warning('HAVE YOU MEASURED THE GRADIENT MOMENTS USING GVE?');
-
-%- This is useful as it gives me a record of Vmps and what I did to
-% generate the world coordinate version of gradient_moments.
-%- Send to beastie02 once done.
+%- Manually measure gradient first moments in GVE
+%- Run fcmr_4dflow_get_first_moments.m
+%- Send file to beastie02.
 warning('YOU MIGHT NEED TO MAKE THE WORLD COORDINATE GRADIENT MOMENT .txt FILES');
 
 

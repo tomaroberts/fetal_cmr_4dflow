@@ -261,8 +261,8 @@ end
 
 %% Write .vtk files for Paraview
 cd(fcmrDir);
-mkdir vel_vol_4d
-cd vel_vol_4d
+mkdir([velDir '_4d']);
+cd([velDir '_4d']);
 
 if strcmp(fileExt,'')
     mkdir(['paraview' foldnameAppend]);
@@ -302,7 +302,7 @@ disp('Finished making .vtk files ... ');
 
 %% Write .nii for MRtrix
 cd(fcmrDir);
-cd vel_vol_4d
+cd([velDir '_4d']);
 
 if strcmp(fileExt,'')
     mkdir(['mrtrix' foldnameAppend]);
