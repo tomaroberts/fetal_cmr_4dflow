@@ -1,3 +1,0 @@
-## Ignore these filetypes:
-
-*.asv
