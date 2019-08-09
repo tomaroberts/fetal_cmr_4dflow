@@ -7,7 +7,7 @@ cd(sp);
 cd ../ffd_registration
 
 %% Step 1)
-%% Files reconstructed on beastie01 using mrecon_pc_recon().m
+%% Files reconstructed on beastie02 using mrecon_pc_recon().m
 %- outputs _CPLX / _MAG / _PH.nii.gz files
 
 % % rawFileName === array of .raw filenames.

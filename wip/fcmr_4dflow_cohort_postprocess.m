@@ -17,12 +17,14 @@ fcmr5stacks = [189 191 194 197 201 202 214];
 
 %% fcmr189
 fNum = 189; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
 fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
 
 %% fcmr191
 fNum = 191; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
 fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
@@ -55,6 +57,7 @@ fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr', ...
 
 %% fcmr197
 fNum = 197; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
 fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
@@ -65,16 +68,18 @@ fNum = 201; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
 fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
-% newer SVRTK recon with -transformations option
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans' );
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr' );
+% % newer SVRTK recon with -transformations option
+% % accidentally used -slice_transformations option in prior recon
+% % - have now become ../vel_vol and ../vel_vol_4d
+% fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans' );
+% fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr' );
 
 
 %% fcmr202
 fNum = 202; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
 
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans' );
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr' );
+fcmr_4dflow_postprocessing( studyDir, fNum );
+fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
 %%% MASKS
 % All
@@ -85,16 +90,19 @@ fcmr_4dflow_postprocessing( studyDir, fNum, ...
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr', ...
     'velMasks', velMasks);
 
-% newer SVRTK recon with -transformations option
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', ...
-    'velMasks', velMasks);
-fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr', ...
-    'velMasks', velMasks);
+% % newer SVRTK recon with -transformations option
+% % accidentally used -slice_transformations option in prior recon
+% % - have now become ../vel_vol and ../vel_vol_4d
+% fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', ...
+%     'velMasks', velMasks);
+% fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr', ...
+%     'velMasks', velMasks);
 
 
 
 %% fcmr214
 fNum = 214; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
 fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
