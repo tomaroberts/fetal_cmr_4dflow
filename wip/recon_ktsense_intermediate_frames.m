@@ -6,6 +6,7 @@ ktDir = '\ktrecon';
 scanNum = 20;
 ktFactor = 8;
 frameFactor = 3;
+sliceNum = 8;
 
 
 %% Load data
@@ -37,7 +38,6 @@ ktSmpIntMed = permute( ktSmpIntMed, [1,2,4,5,6,3] ); % remove 3rd dimension intr
 
 
 %% Reduce Data to Single-slice, in keeping with Josh
-sliceNum = 8;
 ktAcqSlice = ktAcq(:,:,:,:,sliceNum);
 
 % Fourier Transform
@@ -64,12 +64,34 @@ for ii = 1:frameFactor
 end
 
 
+%% Build prior images for Tikhonov Regularization
+ktPri = sum(ktAcqSlice(:,:,1:8,:),3); % Fully-sampled frame
+xtPri = kt2xt(ktPri);
 
-%% 8 frame conjugate recon
-% tom1 = squeeze( sum( xtAcqSlice(:,:,1:8,:) ,3) );
-% tom1 = tom1(:,2:151,:);
-% tom1_conj = sum(tom1.*conj(csm1),3)./sum(csm1.*conj(csm1),3);
-% imtar(abs(tom1_conj))
+% imtar(abs(xtPri(:,:,:,1)),0,0.5);
+
+% SoS image
+xtPriSoS = sqrt( sum( abs(xtPri).^2 ,4 ) );
+imtar(abs(xtPriSoS),0,5);
+
+% Conjugate image - gives NaNs, so not good.
+load(['s' num2str(scanNum) '_csm.mat'],'csm');
+csm = csm(:,:,:,:,sliceNum);
+
+xtPriConj = sum(xtPri.*conj(csm),4)./sum(csm.*conj(csm),4);
+imtar(abs(xtPriConj),0,0.5);
+
+% SoSConj image
+% - NaNs in Conj image problematic for SENSE recon, therefore take the
+% noise from SoS image and apply to background of Conj image
+% - not sure this is legit...
+SoSbkrd = xtPriSoS <= 0.5;
+Conjfgrd = ~SoSbkrd;
+
+xtPriSoSConj = zeros(size(xtPriSoS));
+xtPriSoSConj(SoSbkrd) = xtPriSoS(SoSbkrd);
+xtPriSoSConj(Conjfgrd) = sqrt( xtPriConj(Conjfgrd) );
+imtar(abs(xtPriSoSConj),0,1);
 
 
 %% SENSE reconstruction with conventional sampling pattern
@@ -85,7 +107,6 @@ xt1 = kt2xt(kt1);
 % noiseData = reshape( xt1([1,nX],:,:,:), [], nC ) * sqrt( nX * nY * nT );
 % noiseCov = cov( noiseData );
 psi = psiSens;
-% psi = psi .* eye(size(psi)) .* (1e-9 + 1e-9i);
 
 load(['s' num2str(scanNum) '_csm.mat'],'csm');
 csm = csm(:,:,:,:,sliceNum);
@@ -126,7 +147,6 @@ imtar(abs(imReconstructed),0,0.5);
 
 
 
-
 %% SENSE reconstruction using intermediate frames
 % R=3 intermediate frame recon
 % Half FOV version
@@ -140,7 +160,6 @@ xt1 = kt2xt(kt1);
 % noiseData = reshape( xt1([1,nX],:,:,:), [], nC ) * sqrt( nX * nY * nT );
 % noiseCov = cov( noiseData );
 psi = psiSens;
-% psi = psi .* eye(size(psi)) .* (1e-9 + 1e-9i);
 
 load(['s' num2str(scanNum) '_csm.mat'],'csm');
 csm = csm(:,:,:,:,sliceNum);
@@ -151,53 +170,80 @@ csm = permute(csm,[2,1,3,4]);
 % Trim FOV as if acquired on scanner
 xt1 = xt1(1:50,:,:,:);
 
-% trim csm so divisible by frameFactor
+% Trim prior FOV
+xtPri1 = xtPriSoS;
+% xtPri1 = xtPriSoSConj;
+xtPri1 = permute(xtPri1,[2,1,3,4]);
+xtPri1 = xtPri1(1:150,:,:,:);
+
+% Trim csm so divisible by frameFactor
 csm = csm(1:150,:,:,:);
 
 [Nx,Ny,Nz,Nc] = size(xt1);
 imReconstructed = zeros(Nx,Ny);
 
+inv_psi = inv(psi);
 tol = 1e-9;
 
-for x = 1:Nx
-        
-    x_idx = x:Nx:Nx*R;
-    
-    for y = 1:Ny
-        
-        S = transpose(reshape(csm(x_idx,y,1,:),R,[]));
-        unmix = pinv( S'*inv_psi*S , tol ) * S' * inv_psi;
+% specify regularization method
+regul = 'tik';
 
-        G = sqrt( pinv( S'*inv_psi*S ) * S'*inv_psi*S );
-        
-%         S = S * psisqinv; % Lucilio
-%         unmix = pinv(S,tol);
-        
-        imReconstructed(x_idx,y) = unmix*reshape(xt1(x,y,1,:),[],1);
-        gFactor(x_idx,y) = G;
-    end
+switch regul
     
+    case 'off'
+
+        for x = 1:Nx
+
+            x_idx = x:Nx:Nx*R;
+
+            for y = 1:Ny
+
+                S = transpose(reshape(csm(x_idx,y,1,:),R,[]));
+                unmix = pinv( S'*inv_psi*S , tol ) * S' * inv_psi;
+
+        %         G = sqrt( pinv( S'*inv_psi*S ) * S'*inv_psi*S );
+
+        %         S = S * psisqinv; % Lucilio
+        %         unmix = pinv(S,tol);
+
+                imReconstructed(x_idx,y) = unmix*reshape(xt1(x,y,1,:),[],1);
+        %         gFactor(x_idx,y) = G;
+            end
+        end
+    
+    case 'tik'
+        
+%         lambda = [1e-9,1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1,1,1e1,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9];
+        lambda = logspace(-3,1,20);
+%         lambda = 1e-1;
+        
+        A = eye(R);
+        
+        for ll = 1:numel(lambda)
+            for x = 1:Nx
+
+                x_idx = x:Nx:Nx*R;
+
+                for y = 1:Ny
+
+                    S = transpose(reshape(csm(x_idx,y,1,:),R,[]));
+                    unmix = pinv( S'*inv_psi*S + lambda(ll).*A'*A  , tol ) * S' * inv_psi;
+
+                    diffImPri = reshape(xt1(x,y,1,:),[],1) - S*xtPri1(x_idx,y);
+                    imReconstructed(x_idx,y,ll) = xtPri1(x_idx,y) + unmix * diffImPri;               
+
+                end
+            end
+            
+        disp(['Finished recon no.: ' num2str(ll)]);
+            
+        end
+        
 end
 
-% for x = 1:Nx
-%         
-%     x_idx = x:Nx:Nx*R;
-%     
-%     for y = 1:Ny
-%         
-%         S = transpose(reshape(csm(x_idx,y,1,:),R,[]));
-%         unmix = pinv( S'*pinv(psi)*S , tol ) * S' * pinv(psi);
-% 
-%         G = sqrt( pinv( S'*pinv(psi)*S ) * S'*pinv(psi)*S );
-%         
-% %         S = S * psisqinv;
-% %         unmix = pinv(S,tol);
-%         
-%         imReconstructed(x_idx,y) = unmix*reshape(xt1(x,y,1,:),[],1);
-%         
-%     end
-% end
+montage_RR(abs(imReconstructed),'',[0,1]);
+montage_RR(abs(imReconstructed)-abs(xtPri1),'diff',[-1,1]); colormap('jet');
 
-imtar(abs(imReconstructed),0,0.5);
+% imtar(abs(imReconstructed),0,0.5);
 
 
