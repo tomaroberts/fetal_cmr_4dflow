@@ -1,4 +1,4 @@
-function fcmr_4dflow_get_first_moments( fcmrDir, varargin )
+function fcmr_4dflow_get_first_moments( reconDir, varargin )
 %FCMR_4DFLOW_GET_FIRST_MOMENTS  get and save gradient first moments
 %
 %   FCMR_4DFLOW_GET_FIRST_MOMENTS( fcmrDir, fcmrNum, 'param', val )
@@ -8,17 +8,17 @@ function fcmr_4dflow_get_first_moments( fcmrDir, varargin )
 %       first moments using GVE in Philips simulator.
 % 
 %   Requires:
-%       - .raw data in ...fcmrDir/raw
-%       - Measurement of gradient first moments (i.e: using GVE)
+%       - .raw data in ...reconDir/raw
+%       - Measurement of gradient first moments (i.e: using Philips GVE)
 %       
 %   Input:
-%       fcmrDir             path to fcmrXXX directory
+%       reconDir            path to fetal reconstruction directory
 %
 %   Optional Parameter-value Pairs:
 %       Vmps                gradient first moments in mps (Measurement/Phase/Slice) coordinates (Philips terminology)
 %
 %   Output:
-%       Various .text files containing reorientated gradient first moments
+%       Various .txt files containing reorientated gradient first moments
 %
 %   Example usage:
 %       - Measure gradient first moments in GVE
@@ -52,7 +52,7 @@ add_param_fn( p, 'Vmps', default.Vmps, ...
         @(x) validateattributes( x, {'double'}, ...
         {}, mfilename ) );
 
-parse( p, fcmrDir, varargin{:} );
+parse( p, reconDir, varargin{:} );
 
 Vmps               = p.Results.Vmps;
 
@@ -78,17 +78,17 @@ end
 
 
 %% Rename goalc.txt files
-cd([fcmrDir rawDir]);
+cd([reconDir rawDir]);
 gcNames = dir('*goalc.txt');
 for ss = 1:numel(gcNames)
     sIDs{ss} = gcNames(ss).name(21:22);
-    copyfile( gcNames(ss).name , [fcmrDir ktreconDir '/s' sIDs{ss} '_goalc_TAR.txt' ] ); %_TAR to differentiate from Josh's original goalc files
+    copyfile( gcNames(ss).name , [reconDir ktreconDir '/s' sIDs{ss} '_goalc_TAR.txt' ] ); %_TAR to differentiate from Josh's original goalc files
 end
 clear gcNames
 
 
 %% Convert to world/xyz coordinates
-cd([fcmrDir ktreconDir]);
+cd([reconDir ktreconDir]);
 
 gcFiles = dir('*goalc_TAR.txt');
 
