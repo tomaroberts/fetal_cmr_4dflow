@@ -1,27 +1,51 @@
+
+
+%%% README:
+% kt Intermediate Frame reconstruction
+%
+% - This was my initial attempt at implementing intermediate frame
+% SENSE reconstruction, ie: take 3 frames and perform SENSE to use as
+% training data for full kt reconstruction.
+%
+% - The aliases were irregular so this method was difficult.
+% - In the end, this was superseded by Lucilio's sliding window method,
+% which is based on a similar idea.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
 function [ xtTrnInt, noiseCov ] = recon_sense_if( ktAcq, csm, psi, varargin )
 %RECON_SENSE_IF   create training data using SENSE intermediate frame reconstruction
 %
-%   ktTrnIf = RECON_SENSE_IF( ktAcq, ktTrn, csm )
+%   ktTrnIf = RECON_SENSE_IF( ktAcq, csm, psi )
 %
-%   [ xtTrnIf, noiseCov ] = RECON_SENSE_IF( ktAcq, csm, psi, csm )
+%   [ xtTrnIf, noiseCov ] = RECON_SENSE_IF( ktAcq, csm, psi )
 %
 %   RECON_KTSENSE( ..., 'param', val)
 %
 %   output:
-%       xtTrnIf             reconstructed training data     (complex,   x-y-time)
-%       noiseCov            noise covariance matrix         (complex,   channel-channel)
+%       xtTrnIf             reconstructed training data         (complex,   x-y-time)
+%       noiseCov            noise covariance matrix             (complex,   channel-channel)
 %
 %   input: 
-%       ktAcq               k-t undersampled k-space data   (complex,   x-y-time-channel)
-%       csm                 coil/channel sensitivity maps   (complex,   x-y-1-channel)
-%       psi                 noise covariance matrix;        (complex,   channel-channel)
+%       ktAcq               k-t undersampled k-space data       (complex,   x-y-time-channel)
+%       csm                 coil/channel sensitivity maps       (complex,   x-y-1-channel)
+%       psi                 noise covariance matrix;            (complex,   channel-channel)
 %
 %   option parameter-value pairs:
-%       lambda              SENSE Tikhonov regularisation   (real/positive, scalar)
-%       TO USE?: lambdaroi           regularisation inside ROI       (real/positive, scalar)
-%       removeoversampling  remove frequency oversampling   (logical,   scalar)
-%       fn_rmv_os           remove oversampling function    (anonymous function)
-%       verbose             output intermediate steps       (logical,   scalar)
+%       Reff                Intermediate frames SENSE factor    (real/positive, scalar)
+%       lambda              SENSE Tikhonov regularisation       (real/positive, scalar)
+%       regmethod           SENSE regularisation method         (string)
+%       TO USE?: lambdaroi           regularisation inside ROI          (real/positive, scalar)
+%       removeoversampling  remove frequency oversampling       (logical,   scalar)
+%       fn_rmv_os           remove oversampling function        (anonymous function)
+%       verbose             output intermediate steps           (logical,   scalar)
 %
 %   see also: recon_ktsense, recon_xtsense, recon_xfsense
 
@@ -47,7 +71,9 @@ dimF = dimT;  nF = nT;
 
 %% Parse Input
 
+default.Reff                = 3;
 default.lambda              = 0.1;
+default.regmethod           = 'tikhonov';
 default.noiseCov            = [];
 default.removeoversampling  = false;
 default.fn_rmv_os           = @( x ) x((round(size(x,dimX)/4)+1):(size(x,dimX)-round(size(x,dimX)/4)),:,:,:);
@@ -70,9 +96,17 @@ addRequired(  p, 'csm', @(x) validateattributes( x, {'numeric'}, ...
 addRequired(  p, 'psi', @(x) validateattributes( x, {'numeric'}, ...
         {'size',[nC,nC]}, mfilename ) );
 
-add_param_fn( p, 'lambda', default.lambda0, ...
+add_param_fn( p, 'Reff', default.Reff, ...
         @(x) validateattributes( x, {'numeric'}, ...
         {'positive','scalar'}, mfilename ) );
+    
+add_param_fn( p, 'lambda', default.lambda, ...
+        @(x) validateattributes( x, {'numeric'}, ...
+        {'positive','scalar'}, mfilename ) );
+    
+add_param_fn( p, 'regmethod', default.regmethod, ...
+        @(x) validateattributes( x, {'char'}, ...
+        {'vector'}, mfilename ) );
 
 add_param_fn( p, 'noisecov', default.noiseCov, ...
         @(x) validateattributes( x, {'numeric'}, ...
@@ -90,10 +124,12 @@ add_param_fn( p, 'verbose',     default.isVerbose, ...
         @(x) validateattributes( x, {'logical'}, ...
         {}, mfilename ) );
 
-parse( p, ktAcq, ktTrn, csm, varargin{:} );
+parse( p, ktAcq, csm, psi, varargin{:} );
 
+Reff                = p.Results.Reff;
 lambda              = p.Results.lambda;
-% noiseCov            = p.Results.noisecov;
+regmethod           = p.Results.regmethod;
+noiseCov            = p.Results.noisecov;
 isRmvOversampling   = p.Results.removeoversampling;
 fn_rmv_os           = p.Results.fn_rmv_os;
 isVerbose           = p.Results.verbose;
@@ -191,12 +227,9 @@ xtPri = temp; clear temp;
 %% Trim Data FOVs
 % nY must be divisible by Reff
 
-Reff = 3;
-
 nY_mod = mod(nY,Reff);
 nY_aliased = (nY-nY_mod) / Reff;
 
-% xtAcqRed = xtAcq(:,1:nY_aliased,:,:);
 xtIntRed = xtInt(:,1:nY_aliased,:,:);
 xtPriRed = xtPri(:,1:nY-nY_mod,:);
 csmRed   = csm(:,1:nY-nY_mod,:,:);
@@ -207,15 +240,15 @@ csmRed   = csm(:,1:nY-nY_mod,:,:);
 % regmethod = 'off';
 regmethod = 'tikhonov';
 
-tol = 1e-9;
+tol = 1e-9; % pinv tolerance
 inv_psi = inv(psi);
 
-xtTrnInt = zeros(size(xtPriRed));
+xtTrnInt = zeros( nX, nY, nI );
 
 switch regmethod
     
     % No Regularisation
-    case 'off'
+    case { 'off' , 'none' }
 
         for ii = 1:nI
             
@@ -232,7 +265,7 @@ switch regmethod
                     unmix = pinv( S'*inv_psi*S , tol ) * S' * inv_psi;
                     
                     % Unliased Images
-                    xtTrnInt(x,y_idx,ii,ll) = unmix * reshape(xtIntRed(x,y,ii,:),[],1);
+                    xtTrnInt(x,y_idx,ii) = unmix * reshape(xtIntRed(x,y,ii,:),[],1);
                     
                     
                 end
@@ -244,13 +277,6 @@ switch regmethod
     
     % Tikhonov Regularisation
     case 'tikhonov'
-        
-        % pinv tolerance
-        tol = 1e-9;
-        
-        % Regularisation parameter
-        lambda = lambda;
-%         lambda = 0;
         
         A = eye(Reff);
         AinvA = A'*A;
@@ -272,7 +298,6 @@ switch regmethod
                         unmix = pinv( S'*inv_psi*S + lambda(ll).*AinvA  , tol ) * S' * inv_psi;
 
                         % Difference between Unaliased and Prior Images
-%                         diffImPri = reshape(xtIntRed(x,y,1,:),[],1) - S*transpose(xtPriRed(x,y_idx));
                         diffImPri = reshape(xtIntRed(x,y,ii,:),[],1) - S*transpose(xtPriRed(x,y_idx,ii));
                         
                         % Unliased Images
@@ -296,4 +321,4 @@ end
 
 
 
-end  % recon_ktsense(...)
+end  % recon_sense_if(...)
