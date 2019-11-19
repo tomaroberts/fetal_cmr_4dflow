@@ -1,7 +1,7 @@
-function fcmr_4dflow_postprocessing( studyDir, fcmrNum, varargin )
+function fcmr_4dflow_postprocessing( reconDir, varargin )
 %FCMR_4DFLOW_POSTPROCESSING  post-processing of 4D flow real-time data
 %
-%   FCMR_4DFLOW_POSTPROCESSING( studyDir, fcmrNum, 'param', val )
+%   FCMR_4DFLOW_POSTPROCESSING( reconDir, 'param', val )
 %       Post-processing of 4D flow cine volumes and .vtk generation for 4D
 %       visualisation in Paraview
 %       - Loads 4D velocity component volumes and combines to single vector
@@ -13,8 +13,7 @@ function fcmr_4dflow_postprocessing( studyDir, fcmrNum, varargin )
 %   Requires:
 %       
 %   Input:
-%       studyDir            - str - local directory of fetal subjects
-%       fcmrNum             - int - subject number
+%       reconDir            - str - local directory of fetal subjects
 %
 %   Optional Parameter-value Pairs:
 %       velDir              directory containing SVR 4D velocity recon
@@ -27,7 +26,7 @@ function fcmr_4dflow_postprocessing( studyDir, fcmrNum, varargin )
 %                           volume
 %
 %   Example usage:
-%       fcmr_4dflow_postprocessing( 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data', 194 )
+%       fcmr_4dflow_postprocessing( 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr194' )
 %
 %   TODO:
 %       - fix necessity for reslice_nii. Slight difference with SVRTK which means
@@ -44,6 +43,7 @@ function fcmr_4dflow_postprocessing( studyDir, fcmrNum, varargin )
 %% Parse Input
 
 default.velDir            = 'vel_vol';
+default.fcmrNum           = [];
 default.fileExt           = '';
 default.useVelDriftCorr   = false;
 default.bloodpoolMask     = 'mask_blood_pool';
@@ -58,10 +58,12 @@ else
 end
 
 addRequired(  p, 'studyDir' );
-addRequired(  p, 'fcmrNum' );
 
 add_param_fn( p, 'velDir', default.velDir, ...
         @(x) validateattributes( x, {'char'}, ...
+        {}, mfilename ) );
+add_param_fn( p, 'fcmrNum', default.fcmrNum, ...
+        @(x) validateattributes( x, {'double'}, ...
         {}, mfilename ) );
 add_param_fn( p, 'fileExt', default.fileExt, ...
         @(x) validateattributes( x, {'char'}, ...
@@ -76,32 +78,26 @@ add_param_fn( p, 'velMasks', default.velMasks, ...
         @(x) validateattributes( x, {'cell'}, ...
         {}, mfilename ) );
 
-parse( p, studyDir, fcmrNum, varargin{:} );
+parse( p, reconDir, varargin{:} );
 
 velDir             = p.Results.velDir;
+fcmrNum            = p.Results.fcmrNum;
 fileExt            = p.Results.fileExt;
 useVelDriftCorr    = p.Results.useVelDriftCorr;
 bloodpoolMask      = p.Results.bloodpoolMask;
 velMasks           = p.Results.velMasks;
 
 
-%% Default paths
-% - for example:
-
-% fcmrNum = 194;
-fcmrDir = [studyDir '\fcmr' num2str(fcmrNum)];
-
-
 %% Velocity volume polynomial correction
 % NB: this automatically makes blood pool mask used further on
 % TODO: make automatic masking separate from drift correction
 if useVelDriftCorr == true
-    fcmr_4dflow_drift_correction( fcmrDir , velDir );
+    fcmr_4dflow_drift_correction( reconDir , velDir );
 end
 
 
 %% Load cine volume
-cd(fcmrDir);
+cd(reconDir);
 cd('cine_vol');
 
 if ~isfile('cine_vol-RESLICE.nii.gz')
@@ -115,7 +111,7 @@ nFrame = size(cine_nii.img,4);
 
 
 %% Load velocity component volumes
-cd(fcmrDir);
+cd(reconDir);
 cd(velDir);
 
 if strcmp(fileExt,'')
@@ -149,7 +145,7 @@ Vz = 1e2 .* Vz;
 
 
 %% Load masks
-cd(fcmrDir);
+cd(reconDir);
 cd mask
 
 %% Load magnitude cine blood pool mask
@@ -181,9 +177,12 @@ for mm = 1:numel(velMasks)
     mask.img = double(mask.img);
     
     % fix mask_aorta/mask_IVC_SVC for fcmr194 (to do with extra voxels when re-slicing):
-    if fcmrNum == 194 && strcmp(maskFileName,'mask_aorta') == 1 || fcmrNum == 194 && strcmp(maskFileName,'mask_IVC_SVC') == 1
-        for tt = 1:nFrame; mask_re.img(:,:,:,tt) = imresize3(mask.img(:,:,:,tt),size(cine_nii.img(:,:,:,tt))); end
-        mask.img = mask_re.img; clear mask_re;
+    fcmrNum = 194;
+    if any(fcmrNum)
+        if fcmrNum == 194 && strcmp(maskFileName,'mask_aorta') == 1 || fcmrNum == 194 && strcmp(maskFileName,'mask_IVC_SVC') == 1
+            for tt = 1:nFrame; mask_re.img(:,:,:,tt) = imresize3(mask.img(:,:,:,tt),size(cine_nii.img(:,:,:,tt))); end
+            mask.img = mask_re.img; clear mask_re;
+        end
     end
     
     % initalise maskCombined
@@ -260,7 +259,7 @@ else
 end
 
 %% Write .vtk files for Paraview
-cd(fcmrDir);
+cd(reconDir);
 mkdir([velDir '_4d']);
 cd([velDir '_4d']);
 
@@ -301,21 +300,25 @@ disp('Finished making .vtk files ... ');
 
 
 %% Write .nii for MRtrix
-cd(fcmrDir);
+cd(reconDir);
 cd([velDir '_4d']);
 
 if strcmp(fileExt,'')
     mkdir(['mrtrix' foldnameAppend]);
     cd(['mrtrix' foldnameAppend])
+    
+    % get .nii to use as basis
+    Vx3D_nii = load_untouch_nii([reconDir '\' velDir '\velocity-final-RESLICE-0.nii.gz']);
 else
 	mkdir(['mrtrix_' fileExt foldnameAppend]);
     cd(['mrtrix_' fileExt foldnameAppend]);
+    
+    % get .nii to use as basis
+    Vx3D_nii = load_untouch_nii([reconDir '\' velDir '\velocity-final-' fileExt '-RESLICE-0.nii.gz']);
 end
 
-disp('Writing .nii.gz files ... ');
 
-% get .nii to use as basis
-Vx3D_nii = load_untouch_nii([fcmrDir '\' velDir '\velocity-final-polyCorr-RESLICE-0.nii.gz']);
+disp('Writing .nii.gz files ... ');
 
 for tt = 1:nFrame
     v3D = Vx3D_nii;
@@ -331,8 +334,8 @@ end
 disp('Finished making .nii.gz files ...');
 
 
-%% Return to studyDir
-cd(studyDir);
+%% Return to reconDir
+cd(reconDir);
 
 disp('Post-processing complete ...');
 

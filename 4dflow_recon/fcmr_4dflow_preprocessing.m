@@ -1,10 +1,12 @@
-function fcmr_4dflow_preprocessing( reconDir, rawDir )
+function fcmr_4dflow_preprocessing( reconDir, ktreconDir, cinevolDir, rawDir )
 %FCMR_4DFLOW_PREPROCESSING  pre-processing of 4D flow real-time data
 %
 %   FCMR_4DFLOW_PREPROCESSING( reconDir, ... )
 %       Pre-processing required before reconstructing data with SVRTK
+%       - Creates force_exclude_cine_vol.txt file for use in
+%       recon_vel_vol.bash
 %       - Creates polynomial phase corrected stacks based on uterus mask
-%       - Creates new goalc.txt files containing gradient first moment
+%       - TODO: Creates new goalc.txt files containing gradient first moment
 %         information
 % 
 %   Requires:
@@ -13,6 +15,7 @@ function fcmr_4dflow_preprocessing( reconDir, rawDir )
 %
 %   Input:
 %       reconDir            - str - fetal reconstruction directory
+%       cineDir             - str - cine_vol directory
 %
 %   Optional Inputs:
 %       rawDir              - str - directory on server containing .raw data
@@ -30,27 +33,98 @@ function fcmr_4dflow_preprocessing( reconDir, rawDir )
 %% Default paths
 % - for example:
 
-% ingenia-raw
 if nargin < 2
+    ktreconDir = 'ktrecon';
+    cinevolDir = 'cine_vol';
+    rawDir = 'Z:\';
+end
+
+if nargin < 4
     rawDir = 'Z:\';
 end
 
 
-%% Manually draw uterus ROIs for each stack for polynomial phase correction
+%% Create Text File of Slices Excluded from cine_vol Reconstruction
+%- used in recon_vel_vol.bash
+cd(reconDir);    
+cd(cinevolDir);
+
+% Open cine_vol log-evaluation.txt
+fid = fopen('log-evaluation.txt');
+C = textscan(fid,'%s');
+C = C{1,1};
+fclose(fid);
+
+excludedIdx = find(strcmp(C,'Excluded'),1,'last');
+outsideIdx  = find(strcmp(C,'Outside'),1,'last');
+totalIdx    = find(strcmp(C,'Total:'),2,'last');
+
+% Get Excluded Slices
+if ~isempty(excludedIdx+2:totalIdx(1)-1)
+
+    ctr = 1;
+    for ii = excludedIdx+2:totalIdx(1)-1
+        excludedVals(ctr) = str2double(cell2mat(C(ii)));
+        ctr = ctr + 1;
+    end
+
+    if ( numel(excludedVals) ~= str2double(cell2mat(C(totalIdx(1)+1))) )
+        error('Number of Excluded Slices does not match.');
+    end
+    
+elseif isempty(excludedIdx+2:totalIdx(1)-1)
+    
+    excludedVals = [];
+    
+end
+    
+% Get Outside Slices
+if ~isempty(outsideIdx+2:totalIdx(2)-1)
+
+    ctr = 1;
+    for ii = outsideIdx+2:totalIdx(2)-1
+        outsideVals(ctr) = str2double(cell2mat(C(ii)));
+        ctr = ctr + 1;
+    end
+
+    if ( numel(outsideVals) ~= str2double(cell2mat(C(totalIdx(2)+1))) )
+        error('Number of Outside Slices does not match.');
+    end
+    
+elseif isempty(outsideIdx+2:totalIdx(2)-1)
+    
+    outsideVals = [];
+    
+end
+
+% Write Excluded cine_vol Slices To Text File
+cd ../data
+fid = fopen( 'force_exclude_cine_vol.txt' , 'w' );
+fprintf( fid, '%d ', sort([excludedVals,outsideVals]) );
+fclose( fid );
+
+
+%% Check for Uterus Masks
+%- required for polynomial phase correction
 %- save in ../mask/ as s*_mask_uterus.nii.gz
 
-% TODO: add in check to see if mask files exist
+cd(reconDir);    
+cd mask
+
+if isempty(dir('s*_mask_uterus.nii.gz'))
+    error('Uterus masks are missing. Please draw and save in format s*_mask_uterus.nii.gz.');
+end
 
 
 %% Create phase (_ph.nii.gz) and phase corrected (_ph_corr.nii.gz) stacks
 
 cd(reconDir);    
 cd data
-sIDs = dir('s*_rlt_ab.nii.gz');
+sIDs = dir('s*_rlt_ab*.nii.gz');
 numStacks = numel(sIDs);
 
 cd ..    
-cd ktrecon
+cd(ktreconDir)
     
 for ss = 1:numStacks
 
@@ -82,7 +156,7 @@ for ss = 1:numStacks
     cd ../mask
     uterus_mask = load_untouch_nii([sIDs(ss).name(1:3) '_mask_uterus.nii.gz']);
     heart_mask  = load_untouch_nii([sIDs(ss).name(1:3) '_mask_heart.nii.gz']);
-    cd ../ktrecon
+    cd(['../' ktreconDir]);
 
     % run polynomial correction
     % - Y is corrected complex data, ie: cx_corr.img

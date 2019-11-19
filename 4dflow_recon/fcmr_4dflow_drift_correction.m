@@ -1,8 +1,7 @@
-function fcmr_4dflow_drift_correction( fcmrDir , velDir, bpThreshold )
+function fcmr_4dflow_drift_correction( reconDir , velDir, bpThreshold )
 
 %% fcmr_4dflow_drift_correction()
-% Apply polynomial to velocity volumes to clean up vectors which do not 
-% change through cardiac cycle.
+% Apply polynomial to velocity volumes
 %
 % Tom Roberts (t.roberts@kcl.ac.uk)
 
@@ -11,9 +10,12 @@ function fcmr_4dflow_drift_correction( fcmrDir , velDir, bpThreshold )
 % Set default bloodpool threshold: higher = less blood pool
 if nargin < 3
     bpThreshold = 100;
+elseif nargin < 2
+    bpThreshold = 100;
+    velDir = 'vel_vol';
 end
 
-cd(fcmrDir);
+cd(reconDir);
 
 
 %% Load data
@@ -68,6 +70,7 @@ end
 %% Mask blood pool
 % bpThreshold = 110; % 'blood pool' threshold - arbitrary number empirically determined
 % BP = cv.img>bpThreshold;
+
 BP = ~(cv.img<prctile(cv.img(:),90)); % percentile method
 
 % View full cine_vol / blood pool only / inverse
@@ -152,7 +155,7 @@ implay_RR([v0.img(:,:,16,:) v0_corr.img(:,:,16,:) v0.img(:,:,16,:)-v0_corr.img(:
 %% Save polynomial corrected .nii
 v0.img = v0_corr.img; v1.img = v1_corr.img; v2.img = v2_corr.img;
 
-cd(fcmrDir);
+cd(reconDir);
 
 % save_untouch_nii(v0,[velDir '/' velName '-bkCorr-0.nii.gz']);
 % save_untouch_nii(v1,[velDir '/' velName '-bkCorr-1.nii.gz']);
@@ -165,7 +168,7 @@ save_untouch_nii(v2,[velDir '/' velName '-polyCorr-2.nii.gz']);
 disp('Saved polynomial corrected velocity volumes ...');
 
 %% Save blood pool mask
-cd(fcmrDir);
+cd(reconDir);
 
 bp_nii = v0;
 bp_nii.img = logical(BP);

@@ -2,13 +2,13 @@ function fcmr_4dflow_get_first_moments( reconDir, varargin )
 %FCMR_4DFLOW_GET_FIRST_MOMENTS  get and save gradient first moments
 %
 %   FCMR_4DFLOW_GET_FIRST_MOMENTS( fcmrDir, fcmrNum, 'param', val )
-%       Get gradient first moments from .raw files and save to text files
+%       Get gradient first moments from .goalc files and save to text files
 %       for use in SVRTK reconstruction
 %       - IMPORTANT: currently requires manual measurement of gradient
 %       first moments using GVE in Philips simulator.
 % 
 %   Requires:
-%       - .raw data in ...reconDir/raw
+%       - .goalc files in /ktrecon, containing ORIENT information
 %       - Measurement of gradient first moments (i.e: using Philips GVE)
 %       
 %   Input:
@@ -25,11 +25,11 @@ function fcmr_4dflow_get_first_moments( reconDir, varargin )
 %       fcmr_4dflow_postprocessing( 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr194' )
 %
 %   TODO:
-%       - automatically calculate gradient first moments from .raw files,
+%       - automatically calculate gradient first moments from .goalc files,
 %       rather than require manual measurement in GVE
 %
 %   See also:
-%       
+%       vmps2vworld.m
 
 % Tom Roberts (t.roberts@kcl.ac.uk)
 
@@ -37,6 +37,8 @@ function fcmr_4dflow_get_first_moments( reconDir, varargin )
 %% Parse Input
 
 default.Vmps              = [5.96, 0, -4.35]; % default values for iFIND protocol
+default.ktreconDir        = 'ktrecon';
+default.dataDir           = 'data';
 
 p = inputParser;
 
@@ -51,17 +53,24 @@ addRequired(  p, 'fcmrDir' );
 add_param_fn( p, 'Vmps', default.Vmps, ...
         @(x) validateattributes( x, {'double'}, ...
         {}, mfilename ) );
+    
+add_param_fn( p, 'ktreconDir', default.ktreconDir, ...
+        @(x) validateattributes( x, {'char'}, ...
+        {}, mfilename ) );
+    
+add_param_fn( p, 'dataDir', default.dataDir, ...
+        @(x) validateattributes( x, {'char'}, ...
+        {}, mfilename ) );
 
 parse( p, reconDir, varargin{:} );
 
 Vmps               = p.Results.Vmps;
+ktreconDir         = p.Results.ktreconDir;
+dataDir            = p.Results.dataDir;
 
 
 %% Directory admin
-% fcmrDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\fcmr201';
-rawDir = '/raw';
-ktreconDir = '/ktrecon';
-dataDir = '/data';
+% rawDir = '/raw';
 
 
 %% First moment values from GVE
@@ -77,20 +86,25 @@ if isempty(Vm) || isempty(Vs)
 end
 
 
-%% Rename goalc.txt files
-cd([reconDir rawDir]);
-gcNames = dir('*goalc.txt');
-for ss = 1:numel(gcNames)
-    sIDs{ss} = gcNames(ss).name(21:22);
-    copyfile( gcNames(ss).name , [reconDir ktreconDir '/s' sIDs{ss} '_goalc_TAR.txt' ] ); %_TAR to differentiate from Josh's original goalc files
-end
-clear gcNames
+%% Rename goalc.txt files in raw dir
+% cd([reconDir ktreconDir]);
+% gcNames = dir('*goalc.txt');
+% for ss = 1:numel(gcNames)
+%     sIDs{ss} = gcNames(ss).name(10:11);
+%     copyfile( gcNames(ss).name , [reconDir ktreconDir '/s' sIDs{ss} '_goalc_TAR.txt' ] );
+% end
+% clear gcNames
 
 
 %% Convert to world/xyz coordinates
-cd([reconDir ktreconDir]);
+cd( fullfile( reconDir, ktreconDir ) );
 
-gcFiles = dir('*goalc_TAR.txt');
+gcFiles = dir('*goalc.txt');
+
+for ss = 1:numel(gcFiles)
+    sIDs{ss} = gcFiles(ss).name(2:3);
+end
+    
 
 for ii = 1:numel(gcFiles)
     gc = get_pcmr_orientation_parameters( gcFiles(ii).name );
@@ -125,7 +139,7 @@ end
 
 %% save grad_moment.txt files compatible with SVRTK
 %  (and ORIENT object)
-cd ../data
+cd( fullfile( reconDir, dataDir ) );
 
 % For SVRTK
 fileID = fopen('grad_moment_dirs.txt','w');
