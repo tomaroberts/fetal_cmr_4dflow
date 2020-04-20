@@ -3,7 +3,7 @@
 % fcmr subjects used in paper.
 
 %% studyDir
-studyDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
+studyDir = 'E:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\4D_Flow_Paper';
 
 
 %% fcmr Numbers for paper:
@@ -76,6 +76,7 @@ fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
 
 %% fcmr202
+studyDir = 'E:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\4D_Flow_Paper\fcmr202';
 fNum = 202; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
 
 fcmr_4dflow_postprocessing( studyDir, fNum );
@@ -98,6 +99,16 @@ fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr', ...
 % fcmr_4dflow_postprocessing( studyDir, fNum, 'velDir', 'vel_vol_trans', 'fileExt', 'polyCorr', ...
 %     'velMasks', velMasks);
 
+%%% v2 - removes some erroneous vectors in RPA and lower DAo
+%%% MASKS
+% All
+velMasks = {'mask_aorta_v2','mask_LV','mask_RV','mask_LOT','mask_ROT','mask_LA_RA','mask_IVC_SVC','mask_PA_DA_v2'};
+
+% fcmr_4dflow_postprocessing( studyDir, ...
+%     'velMasks', velMasks);
+fcmr_4dflow_postprocessing( studyDir, 'fileExt', 'polyCorr', ...
+    'velMasks', velMasks);
+
 
 
 %% fcmr214
@@ -107,3 +118,57 @@ fcmr_4dflow_postprocessing( studyDir, fNum );
 fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr' );
 
 
+%% c_fcmr246 - ToF
+studyDir = 'I:\fcmr_4d_chloe_recons\c_fcmr246';
+fNum = 246; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
+% default
+% bloodpoolMask = 'mask_blood_pool_cleaned';
+% fcmr_4dflow_postprocessing( studyDir, fNum, 'fileExt', 'polyCorr', 'bloodpoolMask', bloodpoolMask );
+
+%%% MASKS
+% All:
+% nb: basically folded aorta into LVOT in this instance, rather than having
+% mask_aorta
+velMasks = {'mask_LVOT','mask_RVOT','mask_RV','mask_LV','mask_LA_RA','mask_IVC_SVC'};
+
+% Ao / PA only
+% velMasks = {'Ao_Milou','PA_Milou'};
+
+
+bloodpoolMask = 'mask_blood_pool_cleaned';
+% fcmr_4dflow_postprocessing( studyDir, fNum, ...
+%     'bloodpoolMask', bloodpoolMask, ...
+%     'velMasks', velMasks);
+fcmr_4dflow_postprocessing( studyDir, 'fileExt', 'polyCorr', ...
+    'bloodpoolMask', bloodpoolMask, ...
+    'velMasks', velMasks);
+
+
+%% c_fcmr240_tom - CAT
+studyDir = 'I:\fcmr_4d_chloe_recons\c_fcmr240_tom';
+
+fNum = 240; disp(['Running fcmr ' num2str(fNum) ' ...' ]);
+
+% default
+% bloodpoolMask = 'mask_blood_pool_cleaned';
+% fcmr_4dflow_postprocessing( studyDir, 'fileExt', 'polyCorr', 'bloodpoolMask', bloodpoolMask );
+
+% polyCorr
+bloodpoolMask = 'mask_blood_pool_cleaned';
+velMasks      = bloodpoolMask;
+fcmr_4dflow_postprocessing( studyDir, 'useVelDriftCorr', true, 'fileExt', 'polyCorr', 'bloodpoolMask', bloodpoolMask, 'velMasks', velMasks );
+
+
+%%% MASKS
+% All:
+velMasks = {'mask_CAT','mask_Ao','mask_DAo','mask_DA','mask_IVC_SVC','mask_LA_RA','mask_LV','mask_RV','mask_PA'};
+
+
+bloodpoolMask = 'mask_blood_pool_cleaned';
+% fcmr_4dflow_postprocessing( studyDir, fNum, ...
+%     'bloodpoolMask', bloodpoolMask, ...
+%     'velMasks', velMasks);
+fcmr_4dflow_postprocessing( studyDir, 'fileExt', 'polyCorr', ...
+    'bloodpoolMask', bloodpoolMask, ...
+    'velMasks', velMasks);

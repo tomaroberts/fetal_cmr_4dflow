@@ -1,7 +1,7 @@
 %% Wrapper script for vessel analysis in 4D flow paper
 % used to generate flow curves fed into Excel/Graphpad
 
-studyDir = 'C:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data';
+studyDir = 'E:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\4D_Flow_Paper';
 
 
 %% 7 used in paper

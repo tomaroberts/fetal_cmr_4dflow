@@ -1,4 +1,4 @@
-function fcmr_4dflow_vessel_analysis( studyDir, fcmrNum, usePolyCorr )
+function T_all = fcmr_4dflow_vessel_analysis( studyDir, fcmrNum, usePolyCorr, roiDir )
 
 %% 4D Cardiac Flow - fcmr vessel analysis
 %
@@ -19,13 +19,21 @@ close all
 %% Admin
 
 % fcmrNum = 191;
-fcmrDir = fullfile( studyDir, ['fcmr' num2str(fcmrNum)] );
-cd(fcmrDir);
+try
+    fcmrDir = fullfile( studyDir, ['fcmr' num2str(fcmrNum)] );
+    cd(fcmrDir);
+catch
+    fcmrDir = fullfile( studyDir, ['c_fcmr' num2str(fcmrNum)] );
+    cd(fcmrDir);
+end
 
 velDir = 'vel_vol';
 
 if nargin < 3
     usePolyCorr = false;
+    roiDir = false;
+elseif nargin < 4
+    roiDir = false;
 end
 
 
@@ -102,12 +110,17 @@ for ii = 1:nFrame; mask.img(:,:,:,ii) = mask.img(:,:,:,1); end
 cd(fcmrDir);
 
 % Folder check
-if exist('roi_v2') == 7
-    roiDir = 'roi_v2';
-    cd(roiDir);
+if roiDir == false
+    if exist('roi_v2') == 7
+        roiDir = 'roi_v2';
+        cd(roiDir);
+    else
+        disp('Version 2 folder does not exist ... ')
+        roiDir = 'roi';
+        cd(roiDir);
+    end
 else
-    disp('Version 2 folder does not exist ... ')
-    roiDir = 'roi';
+    disp(['Using ROIs in folder: ' roiDir]);
     cd(roiDir);
 end
 
@@ -120,9 +133,17 @@ for ii = 1:numel(roiNames)
     ROI.(roiNames{ii}) = load_nii([roiNames{ii} '.nii.gz']);
     ROI.(roiNames{ii}).img = double(ROI.(roiNames{ii}).img);
     
+    % find frame containing mask
+    roiIdx    = find(ROI.(roiNames{ii}).img);
+    [~,~,~,roiFrameNum] = ind2sub( size(ROI.(roiNames{ii}).img) , roiIdx );
+    roiFrameNum = unique(roiFrameNum);
+    if numel(roiFrameNum) > 1
+        error('The mask contains ROIs in more than one frame!');
+    end
+    
     % propagate mask to all frames
     for nn = 1:nFrame
-        ROI.(roiNames{ii}).img(:,:,:,nn) = ROI.(roiNames{ii}).img(:,:,:,1); 
+        ROI.(roiNames{ii}).img(:,:,:,nn) = ROI.(roiNames{ii}).img(:,:,:,roiFrameNum); % originally roiFrameNum = 1
     end 
 end
 
@@ -571,6 +592,18 @@ for aa = 1:numel(analysisTypes)
 
     writetable(T,ssFileName,'Sheet',analysisTypes{aa});
     warning('off','last'); % turn off sheet created warning
+    
+    % save tables for function output
+    switch analysisTypes{aa}
+        case 'VSum'
+            T_all.VSUM = T;
+        case 'VMag'
+            T_all.VMAG = T;
+        case 'FSum'
+            T_all.FSUM = T;
+        case 'FMag'
+            T_all.FMAG = T;
+    end
 end
                               
 
