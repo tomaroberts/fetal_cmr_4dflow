@@ -1,3 +1,10 @@
+
+% Testing number of frames in sweep acquisition required for accurate heart
+% rate estimate from x-f data
+
+% - Adult data
+% - Code adapted from estimate_heartrate_xf.m
+
 cd('E:\Users\tr17\Documents\Projects\PC_Fetal_CMR\Data\Adult\2019_03_28_Adult_Heart\swp_3d');
 
 xtRcn = load_untouch_nii('IMG_3D_swp_s11_rlt_ab.nii.gz');
