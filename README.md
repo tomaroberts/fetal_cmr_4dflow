@@ -1,3 +1,16 @@
+# GENTLE WARNING
+
+Hello! This is a personal repo/dumping ground. Head to the following link for the release version of the fetal 4D recon code:<br> https://github.com/mriphysics/fetal_cmr_4d
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 # fetal_cmr_4dflow
 
 fetal whole heart 4D flow cine MRI using multiple non-coplanar balanced SSFP stacks
