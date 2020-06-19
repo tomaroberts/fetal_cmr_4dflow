@@ -1,6 +1,14 @@
 function nii3d = swp_unfold( niiFile, outNiiFileName )
 
-% Quick function to convert a Sweep 4D nifti into a 3D nifti
+%% TODO:
+%
+% make sure geometry information correct (i.e.: .nii occupies correct
+% volume depending on Sweep parameters)
+%
+%
+
+
+%% Quick function to convert a Sweep 4D nifti into a 3D nifti
 
 nii4d = load_untouch_nii( niiFile );
 
@@ -22,7 +30,7 @@ nii3d.hdr.dime.pixdim(1) = 1;
 nii3d.hdr.dime.pixdim(4) = nii4d.hdr.dime.pixdim(5);
 nii3d.hdr.dime.pixdim(5) = 1;
 
-%TODO: possibly? update affine matrix
+% TODO: possibly? update affine matrix
 % nii3d.hdr.hist.srow_x/y/z etc.
 
 if nargin == 1
