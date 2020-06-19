@@ -1,15 +1,8 @@
-# GENTLE WARNING
+# Gentle Warning --- Old Repo
 
-Hello! This is a personal repo/dumping ground. Head to the following link for the release version of the fetal 4D recon code:<br> https://github.com/mriphysics/fetal_cmr_4d
+Hello! I am going to phase out this repo and consolidate everything into the fetal_cmr_4d repo: https://github.com/tomaroberts/fetal_cmr_4d. 
 
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
+The recommended and most stable fetal CMR 4D reconstruction repo can be found here: https://github.com/mriphysics/fetal_cmr_4d
 
 # fetal_cmr_4dflow
 
